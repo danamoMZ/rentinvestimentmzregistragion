@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAffiliateRouteImport } from './routes/app/affiliate'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppDonationsRouteImport } from './routes/app/donations'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
 import { Route as AppTasksRouteImport } from './routes/app/tasks'
 import { Route as AppTeamRouteImport } from './routes/app/team'
@@ -50,6 +51,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDonationsRoute = AppDonationsRouteImport.update({
+  id: '/donations',
+  path: '/donations',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlansRoute = AppPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/donations': typeof AppDonationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/donations': typeof AppDonationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/donations': typeof AppDonationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/affiliate'
     | '/app/dashboard'
+    | '/app/donations'
     | '/app/plans'
     | '/app/tasks'
     | '/app/team'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/affiliate'
     | '/app/dashboard'
+    | '/app/donations'
     | '/app/plans'
     | '/app/tasks'
     | '/app/team'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/affiliate'
     | '/app/dashboard'
+    | '/app/donations'
     | '/app/plans'
     | '/app/tasks'
     | '/app/team'
@@ -195,6 +207,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/donations': {
+      id: '/app/donations'
+      path: '/donations'
+      fullPath: '/app/donations'
+      preLoaderRoute: typeof AppDonationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/plans': {
       id: '/app/plans'
       path: '/plans'
@@ -229,6 +248,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAffiliateRoute: typeof AppAffiliateRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDonationsRoute: typeof AppDonationsRoute
   AppPlansRoute: typeof AppPlansRoute
   AppTasksRoute: typeof AppTasksRoute
   AppTeamRoute: typeof AppTeamRoute
@@ -239,6 +259,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAffiliateRoute: AppAffiliateRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDonationsRoute: AppDonationsRoute,
   AppPlansRoute: AppPlansRoute,
   AppTasksRoute: AppTasksRoute,
   AppTeamRoute: AppTeamRoute,
