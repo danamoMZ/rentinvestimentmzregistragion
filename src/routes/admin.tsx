@@ -135,11 +135,25 @@ function AdminPage() {
   );
 }
 
+function useProfilesMap() {
+  const { data } = useQuery({
+    queryKey: ["admin-profiles-map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, email, public_id");
+      return Object.fromEntries(
+        (data ?? []).map((p) => [p.id, p as { id: string; full_name: string; email: string; public_id: string }]),
+      );
+    },
+  });
+  return data ?? {};
+}
+
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="surface-card mt-3 p-4">{children}</div>;
 }
 
 function Deposits({ onDone }: { onDone: () => void }) {
+  const profiles = useProfilesMap();
   const review = useServerFn(reviewDepositFn);
   const getProof = useServerFn(proofUrlFn);
   const [busy, setBusy] = useState<string | null>(null);
@@ -183,7 +197,7 @@ function Deposits({ onDone }: { onDone: () => void }) {
       {(data ?? []).length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Sem pedidos.</p>}
       <div className="divide-y divide-border">
         {(data ?? []).map((d) => {
-          const user = d.profiles as { full_name: string; public_id: string; email: string } | null;
+          const user = profiles[d.user_id];
           return (
             <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
@@ -222,6 +236,7 @@ function Deposits({ onDone }: { onDone: () => void }) {
 }
 
 function Withdrawals({ onDone }: { onDone: () => void }) {
+  const profiles = useProfilesMap();
   const review = useServerFn(reviewWithdrawalFn);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -255,7 +270,7 @@ function Withdrawals({ onDone }: { onDone: () => void }) {
       {(data ?? []).length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Sem pedidos.</p>}
       <div className="divide-y divide-border">
         {(data ?? []).map((w) => {
-          const user = w.profiles as { full_name: string; email: string } | null;
+          const user = profiles[w.user_id];
           return (
             <div key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
@@ -287,6 +302,7 @@ function Withdrawals({ onDone }: { onDone: () => void }) {
 }
 
 function Affiliates({ onDone }: { onDone: () => void }) {
+  const profiles = useProfilesMap();
   const review = useServerFn(reviewAffiliateFn);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -320,7 +336,7 @@ function Affiliates({ onDone }: { onDone: () => void }) {
       {(data ?? []).length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Sem submissões.</p>}
       <div className="divide-y divide-border">
         {(data ?? []).map((a) => {
-          const user = a.profiles as { full_name: string; email: string } | null;
+          const user = profiles[a.user_id];
           return (
             <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
@@ -464,6 +480,7 @@ function Users({ onDone }: { onDone: () => void }) {
 }
 
 function Tickets({ onDone }: { onDone: () => void }) {
+  const profiles = useProfilesMap();
   const reply = useServerFn(replyTicketFn);
   const setStatus = useServerFn(ticketStatusFn);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -524,7 +541,7 @@ function Tickets({ onDone }: { onDone: () => void }) {
       {(tickets ?? []).length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Sem tickets.</p>}
       <div className="space-y-2">
         {(tickets ?? []).map((t) => {
-          const user = t.profiles as { full_name: string; email: string } | null;
+          const user = profiles[t.user_id];
           return (
             <div key={t.id} className="rounded-xl border border-border">
               <button
