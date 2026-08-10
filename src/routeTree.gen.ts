@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppAffiliateRouteImport } from './routes/app/affiliate'
+import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
+import { Route as AppDonationsRouteImport } from './routes/app/donations'
+import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
+import { Route as AppPlansRouteImport } from './routes/app/plans'
+import { Route as AppProfileRouteImport } from './routes/app/profile'
+import { Route as AppSupportRouteImport } from './routes/app/support'
+import { Route as AppTasksRouteImport } from './routes/app/tasks'
+import { Route as AppTeamRouteImport } from './routes/app/team'
+import { Route as AppWalletRouteImport } from './routes/app/wallet'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAffiliateRoute = AppAffiliateRouteImport.update({
+  id: '/affiliate',
+  path: '/affiliate',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDonationsRoute = AppDonationsRouteImport.update({
+  id: '/donations',
+  path: '/donations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlansRoute = AppPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSupportRoute = AppSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksRoute = AppTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWalletRoute = AppWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/app/affiliate': typeof AppAffiliateRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/donations': typeof AppDonationsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/plans': typeof AppPlansRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/support': typeof AppSupportRoute
+  '/app/tasks': typeof AppTasksRoute
+  '/app/team': typeof AppTeamRoute
+  '/app/wallet': typeof AppWalletRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/auth': typeof AuthRoute
+  '/app/affiliate': typeof AppAffiliateRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/donations': typeof AppDonationsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/plans': typeof AppPlansRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/support': typeof AppSupportRoute
+  '/app/tasks': typeof AppTasksRoute
+  '/app/team': typeof AppTeamRoute
+  '/app/wallet': typeof AppWalletRoute
+  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/app/affiliate': typeof AppAffiliateRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/donations': typeof AppDonationsRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/plans': typeof AppPlansRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/support': typeof AppSupportRoute
+  '/app/tasks': typeof AppTasksRoute
+  '/app/team': typeof AppTeamRoute
+  '/app/wallet': typeof AppWalletRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/auth'
+    | '/app/affiliate'
+    | '/app/dashboard'
+    | '/app/donations'
+    | '/app/notifications'
+    | '/app/plans'
+    | '/app/profile'
+    | '/app/support'
+    | '/app/tasks'
+    | '/app/team'
+    | '/app/wallet'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/app/affiliate'
+    | '/app/dashboard'
+    | '/app/donations'
+    | '/app/notifications'
+    | '/app/plans'
+    | '/app/profile'
+    | '/app/support'
+    | '/app/tasks'
+    | '/app/team'
+    | '/app/wallet'
+    | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/auth'
+    | '/app/affiliate'
+    | '/app/dashboard'
+    | '/app/donations'
+    | '/app/notifications'
+    | '/app/plans'
+    | '/app/profile'
+    | '/app/support'
+    | '/app/tasks'
+    | '/app/team'
+    | '/app/wallet'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +221,143 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/affiliate': {
+      id: '/app/affiliate'
+      path: '/affiliate'
+      fullPath: '/app/affiliate'
+      preLoaderRoute: typeof AppAffiliateRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/donations': {
+      id: '/app/donations'
+      path: '/donations'
+      fullPath: '/app/donations'
+      preLoaderRoute: typeof AppDonationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/plans': {
+      id: '/app/plans'
+      path: '/plans'
+      fullPath: '/app/plans'
+      preLoaderRoute: typeof AppPlansRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/support': {
+      id: '/app/support'
+      path: '/support'
+      fullPath: '/app/support'
+      preLoaderRoute: typeof AppSupportRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/tasks': {
+      id: '/app/tasks'
+      path: '/tasks'
+      fullPath: '/app/tasks'
+      preLoaderRoute: typeof AppTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/team': {
+      id: '/app/team'
+      path: '/team'
+      fullPath: '/app/team'
+      preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/wallet': {
+      id: '/app/wallet'
+      path: '/wallet'
+      fullPath: '/app/wallet'
+      preLoaderRoute: typeof AppWalletRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAffiliateRoute: typeof AppAffiliateRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppDonationsRoute: typeof AppDonationsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppPlansRoute: typeof AppPlansRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppSupportRoute: typeof AppSupportRoute
+  AppTasksRoute: typeof AppTasksRoute
+  AppTeamRoute: typeof AppTeamRoute
+  AppWalletRoute: typeof AppWalletRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAffiliateRoute: AppAffiliateRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppDonationsRoute: AppDonationsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppPlansRoute: AppPlansRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppSupportRoute: AppSupportRoute,
+  AppTasksRoute: AppTasksRoute,
+  AppTeamRoute: AppTeamRoute,
+  AppWalletRoute: AppWalletRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
