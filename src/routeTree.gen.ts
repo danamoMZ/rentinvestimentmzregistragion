@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAffiliateRouteImport } from './routes/app/affiliate'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppDonationsRouteImport } from './routes/app/donations'
+import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
 import { Route as AppSupportRouteImport } from './routes/app/support'
 import { Route as AppTasksRouteImport } from './routes/app/tasks'
@@ -57,6 +58,11 @@ const AppDonationsRoute = AppDonationsRouteImport.update({
   path: '/donations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlansRoute = AppPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/support': typeof AppSupportRoute
   '/app/tasks': typeof AppTasksRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/support': typeof AppSupportRoute
   '/app/tasks': typeof AppTasksRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/support': typeof AppSupportRoute
   '/app/tasks': typeof AppTasksRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/app/affiliate'
     | '/app/dashboard'
     | '/app/donations'
+    | '/app/notifications'
     | '/app/plans'
     | '/app/support'
     | '/app/tasks'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/app/affiliate'
     | '/app/dashboard'
     | '/app/donations'
+    | '/app/notifications'
     | '/app/plans'
     | '/app/support'
     | '/app/tasks'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/app/affiliate'
     | '/app/dashboard'
     | '/app/donations'
+    | '/app/notifications'
     | '/app/plans'
     | '/app/support'
     | '/app/tasks'
@@ -226,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDonationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/plans': {
       id: '/app/plans'
       path: '/plans'
@@ -268,6 +287,7 @@ interface AppRouteChildren {
   AppAffiliateRoute: typeof AppAffiliateRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDonationsRoute: typeof AppDonationsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
   AppPlansRoute: typeof AppPlansRoute
   AppSupportRoute: typeof AppSupportRoute
   AppTasksRoute: typeof AppTasksRoute
@@ -280,6 +300,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAffiliateRoute: AppAffiliateRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDonationsRoute: AppDonationsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
   AppPlansRoute: AppPlansRoute,
   AppSupportRoute: AppSupportRoute,
   AppTasksRoute: AppTasksRoute,
