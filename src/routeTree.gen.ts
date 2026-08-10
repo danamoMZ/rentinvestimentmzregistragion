@@ -18,6 +18,7 @@ import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppDonationsRouteImport } from './routes/app/donations'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
+import { Route as AppProfileRouteImport } from './routes/app/profile'
 import { Route as AppSupportRouteImport } from './routes/app/support'
 import { Route as AppTasksRouteImport } from './routes/app/tasks'
 import { Route as AppTeamRouteImport } from './routes/app/team'
@@ -68,6 +69,11 @@ const AppPlansRoute = AppPlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSupportRoute = AppSupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/app/donations': typeof AppDonationsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/support': typeof AppSupportRoute
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/app/donations': typeof AppDonationsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/support': typeof AppSupportRoute
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/app/donations': typeof AppDonationsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/support': typeof AppSupportRoute
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/app/donations'
     | '/app/notifications'
     | '/app/plans'
+    | '/app/profile'
     | '/app/support'
     | '/app/tasks'
     | '/app/team'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/app/donations'
     | '/app/notifications'
     | '/app/plans'
+    | '/app/profile'
     | '/app/support'
     | '/app/tasks'
     | '/app/team'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/app/donations'
     | '/app/notifications'
     | '/app/plans'
+    | '/app/profile'
     | '/app/support'
     | '/app/tasks'
     | '/app/team'
@@ -252,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlansRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/support': {
       id: '/app/support'
       path: '/support'
@@ -289,6 +308,7 @@ interface AppRouteChildren {
   AppDonationsRoute: typeof AppDonationsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppPlansRoute: typeof AppPlansRoute
+  AppProfileRoute: typeof AppProfileRoute
   AppSupportRoute: typeof AppSupportRoute
   AppTasksRoute: typeof AppTasksRoute
   AppTeamRoute: typeof AppTeamRoute
@@ -302,6 +322,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsRoute: AppDonationsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppPlansRoute: AppPlansRoute,
+  AppProfileRoute: AppProfileRoute,
   AppSupportRoute: AppSupportRoute,
   AppTasksRoute: AppTasksRoute,
   AppTeamRoute: AppTeamRoute,
