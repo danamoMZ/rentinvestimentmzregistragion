@@ -149,7 +149,7 @@ function Deposits({ onDone }: { onDone: () => void }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("deposit_requests")
-        .select("*, plans(name), profiles(full_name, public_id, email)")
+        .select("*, plans(name)")
         .order("created_at", { ascending: false })
         .limit(200);
       return data ?? [];
@@ -230,7 +230,7 @@ function Withdrawals({ onDone }: { onDone: () => void }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("withdrawals")
-        .select("*, profiles(full_name, email)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
       return data ?? [];
@@ -295,7 +295,7 @@ function Affiliates({ onDone }: { onDone: () => void }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("affiliate_submissions")
-        .select("*, profiles(full_name, email)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(200);
       return data ?? [];
@@ -475,7 +475,7 @@ function Tickets({ onDone }: { onDone: () => void }) {
     queryFn: async () => {
       const { data } = await supabase
         .from("support_tickets")
-        .select("*, profiles(full_name, email)")
+        .select("*")
         .order("updated_at", { ascending: false })
         .limit(100);
       return data ?? [];
