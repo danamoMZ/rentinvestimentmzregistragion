@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type Search = { mode?: "login" | "register"; ref?: string };
+type Search = { mode?: "login" | "register" | undefined; ref?: string | undefined };
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
