@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
 import { Route as AppTasksRouteImport } from './routes/app/tasks'
+import { Route as AppTeamRouteImport } from './routes/app/team'
 import { Route as AppWalletRouteImport } from './routes/app/wallet'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const AppTasksRoute = AppTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppWalletRoute = AppWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/plans': typeof AppPlansRoute
   '/app/tasks': typeof AppTasksRoute
+  '/app/team': typeof AppTeamRoute
   '/app/wallet': typeof AppWalletRoute
   '/app/': typeof AppIndexRoute
 }
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/plans': typeof AppPlansRoute
   '/app/tasks': typeof AppTasksRoute
+  '/app/team': typeof AppTeamRoute
   '/app/wallet': typeof AppWalletRoute
   '/app': typeof AppIndexRoute
 }
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/plans': typeof AppPlansRoute
   '/app/tasks': typeof AppTasksRoute
+  '/app/team': typeof AppTeamRoute
   '/app/wallet': typeof AppWalletRoute
   '/app/': typeof AppIndexRoute
 }
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/plans'
     | '/app/tasks'
+    | '/app/team'
     | '/app/wallet'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/plans'
     | '/app/tasks'
+    | '/app/team'
     | '/app/wallet'
     | '/app'
   id:
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/plans'
     | '/app/tasks'
+    | '/app/team'
     | '/app/wallet'
     | '/app/'
   fileRoutesById: FileRoutesById
@@ -178,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTasksRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/team': {
+      id: '/app/team'
+      path: '/team'
+      fullPath: '/app/team'
+      preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/wallet': {
       id: '/app/wallet'
       path: '/wallet'
@@ -192,6 +211,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppPlansRoute: typeof AppPlansRoute
   AppTasksRoute: typeof AppTasksRoute
+  AppTeamRoute: typeof AppTeamRoute
   AppWalletRoute: typeof AppWalletRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -200,6 +220,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppPlansRoute: AppPlansRoute,
   AppTasksRoute: AppTasksRoute,
+  AppTeamRoute: AppTeamRoute,
   AppWalletRoute: AppWalletRoute,
   AppIndexRoute: AppIndexRoute,
 }
