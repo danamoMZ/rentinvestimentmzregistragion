@@ -599,6 +599,7 @@ export type Database = {
         Returns: number
       }
       claim_task: { Args: { _task_index: number }; Returns: Json }
+      expire_plans: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -606,6 +607,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_due_donations: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "user"
