@@ -75,7 +75,7 @@ export async function ledger(
     _user_id: userId,
     _type: type,
     _amount: amount,
-    _reference: reference,
+    _reference: reference ?? "",
     _description: description,
   });
   if (error) throw new Error(error.message);
