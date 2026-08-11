@@ -1,4 +1,5 @@
-import logo from "@/assets/ri-logo.jpg";
+import logoAsset from "@/assets/ri-logo.jpg.asset.json";
+const logo = logoAsset.url;
 import { cn } from "@/lib/utils";
 
 export function Logo({

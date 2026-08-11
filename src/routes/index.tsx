@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { MZN } from "@/lib/format";
-import logo from "@/assets/ri-logo.jpg";
+import logoAsset from "@/assets/ri-logo.jpg.asset.json";
+const logo = logoAsset.url;
 
 export const Route = createFileRoute("/")({
   head: () => ({
