@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import logo from "@/assets/ri-logo.jpg";
+import logoAsset from "@/assets/ri-logo.jpg.asset.json";
+const logo = logoAsset.url;
 
 export const Route = createFileRoute("/app/plans")({
   component: Plans,
