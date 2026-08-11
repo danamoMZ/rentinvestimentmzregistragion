@@ -165,14 +165,39 @@ function Plans() {
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="rounded-lg border border-border bg-secondary p-3 text-sm">
-              {PAYMENT_FIELDS.map((field) => (
-                <div key={field.key} className="flex items-center justify-between py-0.5">
-                  <span className="text-muted-foreground">{field.label}</span>
-                  <span className="font-semibold">{settings?.[field.key] || "—"}</span>
-                </div>
-              ))}
+            <div className="space-y-2 rounded-lg border border-border bg-secondary p-3 text-sm">
+              {PAYMENT_FIELDS.map((field) => {
+                const value = settings?.[field.key] || "";
+                return (
+                  <div key={field.key} className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">{field.label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-semibold">{value || "—"}</span>
+                      {value && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="size-7"
+                          aria-label={`Copiar ${field.label}`}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(value);
+                              toast.success("Copiado!");
+                            } catch {
+                              toast.error("Não foi possível copiar.");
+                            }
+                          }}
+                        >
+                          <Copy className="size-4" />
+                        </Button>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
+
 
             <div className="space-y-1.5">
               <Label htmlFor="sender">Número usado no pagamento</Label>
