@@ -59,9 +59,9 @@ function Tasks() {
     try {
       const { data, error } = await supabase.rpc("claim_task", { _task_index: index });
       if (error) throw new Error(error.message);
-      const result = data as { ok?: boolean; error?: string; amount?: number } | null;
-      if (!result?.ok) throw new Error(result?.error ?? "Não foi possível concluir a tarefa.");
-      toast.success(`Tarefa concluída! +${MZN(result.amount ?? 0)}`);
+      const result = data as { error?: string; amount?: number } | null;
+      if (result?.error) throw new Error(result.error);
+      toast.success(`Tarefa coletada com sucesso! +${MZN(result?.amount ?? 0)}`);
       queryClient.invalidateQueries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao concluir a tarefa.");
@@ -69,6 +69,7 @@ function Tasks() {
       setBusyIndex(null);
     }
   };
+
 
   if (isLoading) {
     return (
