@@ -91,6 +91,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo</p>
               <p className="text-sm font-bold text-foreground">{MZN(profile?.balance)}</p>
             </div>
+            <Link to="/app/support">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <LifeBuoy className="size-4" /> <span className="hidden sm:inline">Suporte</span>
+              </Button>
+            </Link>
             <Link to="/app/notifications" className="relative">
               <Button variant="ghost" size="icon" aria-label="Notificações">
                 <Bell className="size-5" />
@@ -101,6 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
+
             {isAdmin && (
               <Link to="/admin">
                 <Button variant="outline" size="sm" className="gap-1.5">
