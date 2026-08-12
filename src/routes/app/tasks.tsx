@@ -120,28 +120,32 @@ function Tasks() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {Array.from({ length: total }, (_, i) => i + 1).map((index) => {
-          const isDone = claimed.has(index);
-          return (
+        {Array.from({ length: total }, (_, i) => i + 1)
+          .filter((index) => !claimed.has(index))
+          .map((index) => (
             <div key={index} className="surface-card flex items-center justify-between gap-3 p-4">
               <div>
                 <p className="font-semibold">Tarefa {index}</p>
                 <p className="text-sm text-muted-foreground">Recompensa {MZN(planRow.task_value)}</p>
               </div>
-              {isDone ? (
-                <span className="flex items-center gap-1.5 rounded-lg border border-success/40 bg-success/15 px-3 py-1.5 text-sm font-semibold text-success">
-                  <CheckCircle2 className="size-4" /> Concluída
-                </span>
-              ) : (
-                <Button size="sm" onClick={() => claim(index)} disabled={busyIndex !== null}>
-                  {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  Concluir
-                </Button>
-              )}
+              <Button size="sm" onClick={() => claim(index)} disabled={busyIndex !== null}>
+                {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Concluir
+              </Button>
             </div>
-          );
-        })}
+          ))}
       </div>
+
+      {done >= total && (
+        <div className="surface-card p-6 text-center">
+          <CheckCircle2 className="mx-auto size-8 text-success" />
+          <p className="mt-2 text-sm font-semibold text-success">
+            Todas as tarefas de hoje foram coletadas com sucesso.
+          </p>
+          <p className="text-xs text-muted-foreground">Novas tarefas ficam disponíveis amanhã.</p>
+        </div>
+      )}
+
     </div>
   );
 }
