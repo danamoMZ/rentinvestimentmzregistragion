@@ -158,7 +158,4 @@
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
 
-  #lovable-badge { 
-  display: none !important; 
-  }
 }
