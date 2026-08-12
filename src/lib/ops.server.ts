@@ -188,12 +188,8 @@ export async function createDonation(userId: string, amount: number) {
   if (!Number.isFinite(amount) || amount < 100) throw new Error("A doação mínima é 100 MZN.");
   if (Number(profile.balance) < amount) throw new Error("Saldo insuficiente para esta doação.");
 
-  const { count } = await supabaseAdmin
-    .from("donations")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("status", "ACTIVE");
-  if ((count ?? 0) > 0) throw new Error("Já tem uma doação em curso.");
+
+
 
   const returnAmount = Math.round(amount * 1.15 * 100) / 100;
   const end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
