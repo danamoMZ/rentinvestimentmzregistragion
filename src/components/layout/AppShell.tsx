@@ -19,6 +19,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/use-session";
 import { Logo } from "@/components/brand/Logo";
+import { SupportMenu } from "@/components/layout/SupportMenu";
+
 import { MZN } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
