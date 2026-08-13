@@ -112,7 +112,7 @@ Sem erros não quero vir reclamar
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://rentinvestimentmzregistragion.lovable.app
+**Live app**: https://rentinvestimentmzap.co.mz
 
 ## Build with Lovable
 
