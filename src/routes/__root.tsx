@@ -83,6 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "RENT INVESTIMENT" },
       { name: "description", content: "Plataforma RENT INVESTIMENT — planos, tarefas e gestão de saldo." },
       { property: "og:type", content: "website" },
+      {
+        name: "content-security-policy",
+        content:
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';",
+      },
+      { name: "x-frame-options", content: "DENY" },
+      { name: "x-content-type-options", content: "nosniff" },
+      { name: "referrer-policy", content: "strict-origin-when-cross-origin" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [

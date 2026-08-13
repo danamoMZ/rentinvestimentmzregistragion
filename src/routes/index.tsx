@@ -137,7 +137,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-8 text-center">
           <Logo size={32} />
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CheckCircle2 className="size-3.5 text-success" /> Valores em meticais (MZN) · Fuso horário de Maputo
+            <CheckCircle2 className="size-3.5 text-success" /> Feito com excelência em Maputo · Valores em MZN
           </p>
         </div>
       </footer>
