@@ -516,3 +516,40 @@ export async function proofUrl(adminId: string, path: string) {
   if (error) throw new Error(error.message);
   return { url: data.signedUrl };
 }
+
+export async function requestPasswordReset(identifier: string) {
+  const isEmail = identifier.includes("@");
+  let query = supabaseAdmin.from("profiles").select("email, phone");
+  
+  if (isEmail) {
+    query = query.eq("email", identifier.trim());
+  } else {
+    // Basic phone normalization: remove +258 if user typed it or keep it simple
+    const cleanPhone = identifier.trim().replace("+258", "").trim();
+    query = query.or(`phone.eq.${cleanPhone},phone.eq.+258${cleanPhone}`);
+  }
+
+  const { data: profile } = await query.maybeSingle();
+  if (!profile) throw new Error("Utilizador não encontrado.");
+
+  // Supabase auth reset password works by email. 
+  // For phone-only users, we might need a different provider or OTP, 
+  // but the prompt mentions "enviaremos um código automaticamente ao email".
+  // So we always send to the profile's email.
+  const { error } = await supabaseAdmin.auth.resetPasswordForEmail(profile.email, {
+    redirectTo: `${process.env['VITE_APP_URL'] || 'http://localhost:8080'}/auth?mode=reset-password`,
+  });
+
+  if (error) throw new Error("Erro ao enviar código de recuperação.");
+  return { ok: true, method: isEmail ? "EMAIL" : "SMS" };
+}
+
+export async function resetPassword(password: string) {
+  // This is actually handled by Supabase directly on the client if redirected, 
+  // but we keep the wrapper if needed for custom logic.
+  const { error } = await supabaseAdmin.auth.updateUser({
+    password: password,
+  });
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}

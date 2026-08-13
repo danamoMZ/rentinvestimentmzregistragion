@@ -97,7 +97,7 @@ function AuthPage() {
         navigate({ to: "/app/dashboard", replace: true });
       } else if (mode === "forgot-password") {
         if (!form.identifier.trim()) throw new Error("Informe o seu e-mail ou número de telefone.");
-        await requestReset({ identifier: form.identifier });
+        await requestReset({ data: { identifier: form.identifier } });
         toast.success("Código de recuperação enviado! Verifique o seu e-mail ou SMS.");
       } else if (mode === "reset-password") {
         if (form.password !== form.confirm_password) throw new Error("As palavras-passe não coincidem.");

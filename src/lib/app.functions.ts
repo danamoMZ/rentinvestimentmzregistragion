@@ -148,8 +148,9 @@ export const requestPasswordResetFn = createServerFn({ method: "POST" })
   });
 
 export const resetPasswordFn = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; newPassword: string }) => data)
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { password: string }) => data)
   .handler(async ({ data }) => {
     const ops = await import("@/lib/ops.server");
-    return ops.resetPassword(data.token, data.newPassword);
+    return ops.resetPassword(data.password);
   });
