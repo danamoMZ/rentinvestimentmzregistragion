@@ -518,19 +518,24 @@ export async function proofUrl(adminId: string, path: string) {
 }
 
 export async function requestPasswordReset(identifier: string) {
-  const isEmail = identifier.includes("@");
+  const raw = identifier.trim();
+  const isEmail = raw.includes("@");
   let query = supabaseAdmin.from("profiles").select("email, phone");
-  
+
   if (isEmail) {
-    query = query.eq("email", identifier.trim());
+    query = query.ilike("email", raw);
   } else {
-    // Basic phone normalization: remove +258 if user typed it or keep it simple
-    const cleanPhone = identifier.trim().replace("+258", "").trim();
-    query = query.or(`phone.eq.${cleanPhone},phone.eq.+258${cleanPhone}`);
+    // Normalize phone: keep digits only, drop 258 country prefix
+    const digits = raw.replace(/\D/g, "").replace(/^258/, "");
+    query = query.or(
+      `phone.eq.${digits},phone.eq.258${digits},phone.eq.+258${digits},phone.eq.+258 ${digits},phone.ilike.%${digits}`,
+    );
   }
 
-  const { data: profile } = await query.maybeSingle();
-  if (!profile) throw new Error("Utilizador não encontrado.");
+  const { data: rows } = await query.limit(1);
+  const profile = rows?.[0];
+  if (!profile?.email) throw new Error("Utilizador não encontrado.");
+
 
   // Supabase auth reset password works by email. 
   // For phone-only users, we might need a different provider or OTP, 
