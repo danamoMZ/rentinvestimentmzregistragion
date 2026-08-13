@@ -141,7 +141,7 @@ export const proofUrlFn = createServerFn({ method: "POST" })
   .inputValidator((data: { path: string }) => data)
   .handler(async ({ data, context }) => {
     const ops = await import("@/lib/ops.server");
-    return ops.getProofUrl(context.userId, data.path);
+    return ops.proofUrl(context.userId, data.path);
   });
 
 
