@@ -48,6 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: profile } = useProfile();
   const { data: isAdmin } = useIsAdmin();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useDeviceNotifications();
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth", replace: true });
