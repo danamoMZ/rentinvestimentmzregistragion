@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/use-session";
+import { useDeviceNotifications } from "@/hooks/use-device-notifications";
 import { Logo } from "@/components/brand/Logo";
 import { SupportMenu } from "@/components/layout/SupportMenu";
 
