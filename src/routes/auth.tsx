@@ -72,7 +72,7 @@ function AuthPage() {
           email: form.email.trim(),
           password: form.password,
           options: {
-            emailRedirectTo: "https://rentinvestimentmzap.co.mz/auth/callback",
+            emailRedirectTo: "https://rentinvestimentmzregistragion.lovable.app/auth/callback",
             data: {
               full_name: form.full_name.trim(),
               phone: form.phone.trim(),
