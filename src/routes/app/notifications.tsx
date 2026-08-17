@@ -58,6 +58,29 @@ function Notifications() {
         </Button>
       </div>
 
+      <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex items-start gap-3">
+          <Smartphone className="mt-0.5 size-5 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Notificações no telemóvel</p>
+            <p className="text-xs text-muted-foreground">
+              {permission === "granted"
+                ? "Ativas — os avisos aparecem na barra de notificações do seu dispositivo."
+                : permission === "denied"
+                  ? "Bloqueadas. Ative as notificações nas definições do navegador para este site."
+                  : permission === "unsupported"
+                    ? "Este dispositivo/navegador não suporta notificações."
+                    : "Ative para receber os avisos da RENT INVESTIMENT diretamente no telemóvel."}
+            </p>
+          </div>
+        </div>
+        {permission !== "granted" && permission !== "unsupported" && (
+          <Button size="sm" onClick={activate} className="gap-1.5">
+            <BellRing className="size-4" /> Ativar
+          </Button>
+        )}
+      </div>
+
       <div className="surface-card divide-y divide-border p-4">
         {(items ?? []).length === 0 && (
           <div className="py-10 text-center">
