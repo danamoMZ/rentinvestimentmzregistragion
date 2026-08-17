@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, BellRing, CheckCheck, Smartphone } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useDeviceNotifications } from "@/hooks/use-device-notifications";
 import { formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
@@ -28,10 +30,21 @@ function Notifications() {
     },
   });
 
+  const { permission, enable } = useDeviceNotifications();
+
   const markAll = async () => {
     await supabase.from("notifications").update({ read: true }).eq("user_id", userId!).eq("read", false);
     queryClient.invalidateQueries();
   };
+
+  const activate = async () => {
+    const result = await enable();
+    if (result === "granted") toast.success("Notificações ativadas neste telemóvel.");
+    else if (result === "denied")
+      toast.error("Permissão negada. Ative as notificações nas definições do navegador.");
+    else if (result === "unsupported") toast.error("Este dispositivo não suporta notificações.");
+  };
+
 
   return (
     <div className="space-y-5">
@@ -43,6 +56,29 @@ function Notifications() {
         <Button variant="outline" size="sm" onClick={markAll} className="gap-1.5">
           <CheckCheck className="size-4" /> Marcar lidas
         </Button>
+      </div>
+
+      <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex items-start gap-3">
+          <Smartphone className="mt-0.5 size-5 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Notificações no telemóvel</p>
+            <p className="text-xs text-muted-foreground">
+              {permission === "granted"
+                ? "Ativas — os avisos aparecem na barra de notificações do seu dispositivo."
+                : permission === "denied"
+                  ? "Bloqueadas. Ative as notificações nas definições do navegador para este site."
+                  : permission === "unsupported"
+                    ? "Este dispositivo/navegador não suporta notificações."
+                    : "Ative para receber os avisos da RENT INVESTIMENT diretamente no telemóvel."}
+            </p>
+          </div>
+        </div>
+        {permission !== "granted" && permission !== "unsupported" && (
+          <Button size="sm" onClick={activate} className="gap-1.5">
+            <BellRing className="size-4" /> Ativar
+          </Button>
+        )}
       </div>
 
       <div className="surface-card divide-y divide-border p-4">

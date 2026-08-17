@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#0ea5e9" },
-      { title: "RENT INVESTIMENT — rentinvestimentmzap.co.mz" },
+      { title: "RENT INVESTIMENT — rentinvestimentmzregistragion.lovable.app" },
       { name: "description", content: "Plataforma RENT INVESTIMENT — planos, tarefas e gestão de saldo." },
       { property: "og:type", content: "website" },
       {
@@ -102,6 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/use-session";
+import { useDeviceNotifications } from "@/hooks/use-device-notifications";
 import { Logo } from "@/components/brand/Logo";
 import { SupportMenu } from "@/components/layout/SupportMenu";
 
@@ -47,6 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: profile } = useProfile();
   const { data: isAdmin } = useIsAdmin();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useDeviceNotifications();
 
   useEffect(() => {
     if (!loading && !session) navigate({ to: "/auth", replace: true });
