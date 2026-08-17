@@ -69,9 +69,18 @@ function WalletPage() {
   const fee = Math.round(value * 0.03 * 100) / 100;
 
   const submit = async () => {
+    if (!Number.isFinite(value) || value < 100) {
+      toast.error("O valor mínimo de saque é 100 MZN.");
+      return;
+    }
+    if (value > 18000) {
+      toast.error("O valor máximo de saque é 18.000 MZN.");
+      return;
+    }
     setBusy(true);
     try {
       const result = await withdraw({ data: { amount: value } });
+
       toast.success(`Pedido enviado! Referência ${result.reference}`);
       setAmount("");
       queryClient.invalidateQueries();
