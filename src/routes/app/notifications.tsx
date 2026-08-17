@@ -30,10 +30,21 @@ function Notifications() {
     },
   });
 
+  const { permission, enable } = useDeviceNotifications();
+
   const markAll = async () => {
     await supabase.from("notifications").update({ read: true }).eq("user_id", userId!).eq("read", false);
     queryClient.invalidateQueries();
   };
+
+  const activate = async () => {
+    const result = await enable();
+    if (result === "granted") toast.success("Notificações ativadas neste telemóvel.");
+    else if (result === "denied")
+      toast.error("Permissão negada. Ative as notificações nas definições do navegador.");
+    else if (result === "unsupported") toast.error("Este dispositivo não suporta notificações.");
+  };
+
 
   return (
     <div className="space-y-5">
