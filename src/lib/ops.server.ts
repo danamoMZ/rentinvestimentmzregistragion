@@ -15,6 +15,8 @@ export function levelFor(activeReferrals: number) {
 
 export const AFFILIATE_REWARDS: Record<string, number> = { VIDEO: 300, POST: 150 };
 
+export const FIRST_PLAN_BONUS = 100;
+
 export function todayMaputo(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Maputo" }).format(new Date());
 }
@@ -329,7 +331,7 @@ export async function reviewDeposit(adminId: string, depositId: string, approve:
       .limit(1)
       .maybeSingle();
     if (!alreadyPaid) {
-      await applyLedger(
+      await ledger(
         deposit.user_id,
         "FIRST_PLAN_BONUS",
         FIRST_PLAN_BONUS,
