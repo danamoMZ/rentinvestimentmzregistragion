@@ -31,15 +31,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const { data: plans } = useQuery({
-    queryKey: ["public-plans"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("plans").select("*").order("id");
-      if (error) throw error;
-      return data;
-    },
-  });
-
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-card/85 backdrop-blur">
@@ -129,15 +120,6 @@ function Landing() {
           </p>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value}</span>
     </div>
   );
 }
