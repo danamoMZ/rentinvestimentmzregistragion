@@ -21,6 +21,7 @@ import { useIsAdmin, useProfile, useSession } from "@/hooks/use-session";
 import { useDeviceNotifications } from "@/hooks/use-device-notifications";
 import { Logo } from "@/components/brand/Logo";
 import { SupportMenu } from "@/components/layout/SupportMenu";
+import { WelcomeGuide } from "@/components/layout/WelcomeGuide";
 
 import { MZN } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -146,6 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
+        <WelcomeGuide />
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur lg:hidden">

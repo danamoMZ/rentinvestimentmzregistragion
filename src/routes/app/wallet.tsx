@@ -69,8 +69,8 @@ function WalletPage() {
   const fee = Math.round(value * 0.03 * 100) / 100;
 
   const submit = async () => {
-    if (!Number.isFinite(value) || value < 100) {
-      toast.error("O valor mínimo de saque é 100 MZN.");
+    if (!Number.isFinite(value) || value < 125) {
+      toast.error("O valor mínimo de saque é 125 MZN.");
       return;
     }
     if (value > 18000) {
@@ -106,7 +106,7 @@ function WalletPage() {
       <div className="surface-card space-y-3 p-4">
         <h2 className="text-sm font-semibold">Pedir saque</h2>
         <p className="text-xs text-muted-foreground">
-          Mínimo 100 MZN · Máximo 18.000 MZN · Taxa de 3% · Requer plano ativo.
+          Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 3% · Requer plano ativo.
         </p>
         <div className="space-y-1.5">
           <Label htmlFor="amount">Valor (MZN)</Label>

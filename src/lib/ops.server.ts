@@ -15,6 +15,8 @@ export function levelFor(activeReferrals: number) {
 
 export const AFFILIATE_REWARDS: Record<string, number> = { VIDEO: 300, POST: 150 };
 
+export const FIRST_PLAN_BONUS = 100;
+
 export function todayMaputo(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Maputo" }).format(new Date());
 }
@@ -133,7 +135,7 @@ export async function submitDeposit(
 export async function requestWithdrawal(userId: string, amount: number) {
   const profile = await assertNotBlocked(userId);
   if (!Number.isFinite(amount)) throw new Error("Valor inválido.");
-  if (amount < 100) throw new Error("O valor mínimo de saque é 100 MZN.");
+  if (amount < 125) throw new Error("O valor mínimo de saque é 125 MZN.");
   if (amount > 18000) throw new Error("O valor máximo de saque é 18.000 MZN.");
 
   const plan = await getActivePlan(userId);
@@ -312,6 +314,37 @@ export async function reviewDeposit(adminId: string, depositId: string, approve:
     "🎉 Plano aprovado!",
     `O seu plano ${plan.name} está ativo até ${end}. Já pode realizar as tarefas.`,
   );
+
+  // Bónus automático de primeiro plano (apenas na primeira aprovação do utilizador)
+  const { count: approvedBefore } = await supabaseAdmin
+    .from("deposit_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", deposit.user_id)
+    .eq("status", "APPROVED")
+    .neq("id", deposit.id);
+  if ((approvedBefore ?? 0) === 0) {
+    const { data: alreadyPaid } = await supabaseAdmin
+      .from("ledger_transactions")
+      .select("id")
+      .eq("user_id", deposit.user_id)
+      .eq("type", "FIRST_PLAN_BONUS")
+      .limit(1)
+      .maybeSingle();
+    if (!alreadyPaid) {
+      await ledger(
+        deposit.user_id,
+        "FIRST_PLAN_BONUS",
+        FIRST_PLAN_BONUS,
+        `FIRST-PLAN-${deposit.id}`,
+        `Bónus de primeiro plano — +${FIRST_PLAN_BONUS} MZN`,
+      );
+      await notify(
+        deposit.user_id,
+        "🎁 Bónus de primeiro plano",
+        `Parabéns! Recebeu ${FIRST_PLAN_BONUS} MZN de bónus por ativar o seu primeiro plano. O valor já está no seu saldo.`,
+      );
+    }
+  }
 
   await payReferralReward(deposit.user_id, Number(plan.price));
   await logAdmin(adminId, "APPROVE_DEPOSIT", deposit.user_id, Number(deposit.amount), null, "APPROVED");

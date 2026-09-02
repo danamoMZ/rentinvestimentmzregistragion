@@ -44,8 +44,6 @@ function AuthPage() {
     email: "",
     phone: "",
     wallet_number: "",
-    province: "",
-    district: "",
     referral_code: ref ?? "",
     password: "",
     confirm_password: "",
@@ -77,8 +75,6 @@ function AuthPage() {
               full_name: form.full_name.trim(),
               phone: form.phone.trim(),
               wallet_number: form.wallet_number.trim() || form.phone.trim(),
-              province: form.province.trim(),
-              district: form.district.trim(),
               referral_code: form.referral_code.trim().toUpperCase(),
             },
           },
@@ -93,7 +89,7 @@ function AuthPage() {
           navigate({ to: "/auth", search: { mode: "login" } });
           return;
         }
-        toast.success("Conta criada com sucesso! Bónus de 25 MZN aplicado.");
+        toast.success("Conta criada com sucesso! Bónus de 50 MZN aplicado.");
         navigate({ to: "/app/dashboard", replace: true });
       } else if (mode === "forgot-password") {
         if (!form.identifier.trim()) throw new Error("Informe o seu e-mail ou número de telefone.");
@@ -138,7 +134,7 @@ function AuthPage() {
              "Entrar na conta"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "register" ? "Receba 25 MZN de bónus de registo." : 
+            {mode === "register" ? "Receba 50 MZN de bónus de registo." : 
              mode === "forgot-password" ? "Enviaremos um código para o seu e-mail ou telefone." :
              mode === "reset-password" ? "Defina a sua nova palavra-passe de acesso." :
              "Aceda ao seu painel RENT INVESTIMENT."}
@@ -156,10 +152,6 @@ function AuthPage() {
                     value={form.wallet_number}
                     onChange={set("wallet_number")}
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field id="province" label="Província" value={form.province} onChange={set("province")} />
-                  <Field id="district" label="Distrito" value={form.district} onChange={set("district")} />
                 </div>
                 <Field id="email" label="E-mail" type="email" value={form.email} onChange={set("email")} required />
                 <Field
