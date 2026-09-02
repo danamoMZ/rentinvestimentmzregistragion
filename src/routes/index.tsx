@@ -1,12 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { ShieldCheck, TrendingUp, Users, Wallet, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
-import { MZN } from "@/lib/format";
-import logoAsset from "@/assets/ri-logo.jpg.asset.json";
-const logo = logoAsset.url;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -75,7 +70,7 @@ function Landing() {
             </h1>
             <p className="mt-4 max-w-lg text-muted-foreground">
               Ative o seu plano, complete as tarefas diárias e acompanhe cada movimento do seu saldo em meticais.
-              Registo gratuito com bónus de boas-vindas de 25 MZN.
+              Registo gratuito com bónus de boas-vindas de 50 MZN.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to="/auth" search={{ mode: "register" }}>
@@ -102,42 +97,27 @@ function Landing() {
               ))}
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-sm">
-            <div className="absolute -inset-6 rounded-[2rem] bg-[image:var(--gradient-brand)] opacity-20 blur-2xl" />
-            <img
-              src={logo}
-              alt="Logótipo RENT INVESTIMENT"
-              className="relative w-full rounded-[2rem] object-cover shadow-[var(--shadow-float)]"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 pb-20">
-        <h2 className="text-2xl font-bold tracking-tight">Planos disponíveis</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Todos os planos têm duração de 90 dias.</p>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(plans ?? []).map((plan) => (
-            <article key={plan.id} className="surface-card overflow-hidden">
-              <div className="flex items-center gap-3 border-b border-border bg-[image:var(--gradient-soft)] p-4">
-                <img src={logo} alt="" className="size-11 rounded-xl object-cover ring-1 ring-border" />
-                <div>
-                  <h3 className="font-bold">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground">{plan.duration_days} dias</p>
+          <div className="hidden md:block">
+            <div className="surface-card space-y-4 p-6">
+              <h2 className="text-lg font-bold">Como funciona</h2>
+              {[
+                { step: "1", title: "Crie a sua conta", text: "Registo gratuito com bónus de boas-vindas de 50 MZN." },
+                { step: "2", title: "Ative um plano", text: "Escolha um plano RENT e receba 100 MZN de bónus no primeiro plano." },
+                { step: "3", title: "Complete tarefas", text: "Realize as tarefas diárias e veja o saldo crescer todos os dias." },
+                { step: "4", title: "Levante os ganhos", text: "Saques a partir de 125 MZN diretamente para a sua carteira." },
+              ].map((s) => (
+                <div key={s.step} className="flex gap-3">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    {s.step}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">{s.title}</p>
+                    <p className="text-xs text-muted-foreground">{s.text}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2 p-4 text-sm">
-                <Row label="Preço" value={MZN(plan.price)} />
-                <Row label="Renda diária" value={MZN(plan.daily_income)} />
-                <Row label="Tarefas por dia" value={String(plan.daily_task_count)} />
-                <Row label="Valor por tarefa" value={MZN(plan.task_value)} />
-                <Row label="Total do ciclo" value={MZN(plan.total_task_income)} />
-                <Link to="/auth" search={{ mode: "register" }} className="block pt-2">
-                  <Button className="w-full">Ativar plano</Button>
-                </Link>
-              </div>
-            </article>
-          ))}
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
