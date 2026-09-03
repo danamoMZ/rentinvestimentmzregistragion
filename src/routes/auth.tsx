@@ -109,7 +109,12 @@ function AuthPage() {
           email: form.email.trim(),
           password: form.password,
         });
-        if (error) throw new Error("E-mail ou palavra-passe incorretos.");
+
+        if (error) {
+        console.error("ERRO REAL DO LOGIN:", error);
+        throw new Error(error.message);
+      }
+
         toast.success("Bem-vindo de volta!");
         navigate({ to: "/app/dashboard", replace: true });
       }
