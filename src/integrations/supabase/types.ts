@@ -252,34 +252,46 @@ export type Database = {
       }
       plans: {
         Row: {
+          active: boolean
+          created_at: string
           daily_income: number
           daily_task_count: number
           duration_days: number
           id: number
           name: string
           price: number
+          sort_order: number
           task_value: number
           total_task_income: number
+          updated_at: string
         }
         Insert: {
+          active?: boolean
+          created_at?: string
           daily_income: number
           daily_task_count: number
           duration_days?: number
           id: number
           name: string
           price: number
+          sort_order?: number
           task_value: number
           total_task_income: number
+          updated_at?: string
         }
         Update: {
+          active?: boolean
+          created_at?: string
           daily_income?: number
           daily_task_count?: number
           duration_days?: number
           id?: number
           name?: string
           price?: number
+          sort_order?: number
           task_value?: number
           total_task_income?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -336,6 +348,86 @@ export type Database = {
           wallet_number?: string
         }
         Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          active: boolean
+          bonus: number
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          max_uses: number
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          active?: boolean
+          bonus?: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          max_uses?: number
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          active?: boolean
+          bonus?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          max_uses?: number
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
+      promo_redemptions: {
+        Row: {
+          bonus_value: number
+          code_id: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          redeemed_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          bonus_value: number
+          code_id: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          redeemed_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          bonus_value?: number
+          code_id?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          redeemed_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_redemptions_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referrals: {
         Row: {
@@ -608,6 +700,10 @@ export type Database = {
         Returns: boolean
       }
       process_due_donations: { Args: never; Returns: number }
+      redeem_promo_code: {
+        Args: { _code: string; _ip_hash?: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user"
