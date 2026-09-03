@@ -1,5 +1,7 @@
 // Regras de negócio executadas exclusivamente no servidor.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 const REFERRAL_LEVELS = [
   { level: 1, min: 0, max: 30, pct: 0.1 },
@@ -692,27 +694,18 @@ export async function setPromoCodeActive(adminId: string, codeId: string, active
   return { ok: true as const };
 }
 
-export async function redeemPromoCode(userId: string, code: string, ipHash: string | null) {
+export async function redeemPromoCode(
+  userClient: SupabaseClient<Database>,
+  userId: string,
+  code: string,
+  ipHash: string | null,
+) {
   await assertNotBlocked(userId);
   const clean = code.trim().toUpperCase();
   if (!clean) throw new Error("Introduza o código.");
 
-  // Executa como o utilizador (auth.uid()) através de um cliente com o token dele não está disponível aqui,
-  // por isso usamos a função transacional com o service role e passamos o utilizador via claim.
-  const { createClient } = await import("@supabase/supabase-js");
-  const url = process.env["SUPABASE_URL"]!;
-  const key = process.env["SUPABASE_SERVICE_ROLE_KEY"]!;
-  void createClient;
-  void url;
-  void key;
-
-  const { data, error } = await supabaseAdmin.rpc("redeem_promo_code_for", {
-    _user_id: userId,
-    _code: clean,
-    _ip_hash: ipHash,
-  });
-  if (error) throw new Error(error.message.replace(/^.*?:\s*/, "") || "Não foi possível resgatar o código.");
-  const result = data as { balance: number; bonus: number };
-  await logAdmin(userId, "REDEEM_PROMO_CODE", userId, Number(result.bonus), `Código ${clean}`, "CREDITED");
-  return result;
+  // A função SQL é transacional e valida expiração/duplicação no servidor usando auth.uid() do token do utilizador.
+  const { data, error } = await userClient.rpc("redeem_promo_code", { _code: clean, _ip_hash: ipHash ?? undefined });
+  if (error) throw new Error(error.message || "Não foi possível resgatar o código.");
+  return data as { balance: number; bonus: number };
 }
