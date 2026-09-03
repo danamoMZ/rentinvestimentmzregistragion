@@ -1,5 +1,7 @@
 // Regras de negócio executadas exclusivamente no servidor.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 const REFERRAL_LEVELS = [
   { level: 1, min: 0, max: 30, pct: 0.1 },
@@ -16,6 +18,9 @@ export function levelFor(activeReferrals: number) {
 export const AFFILIATE_REWARDS: Record<string, number> = { VIDEO: 300, POST: 150 };
 
 export const FIRST_PLAN_BONUS = 100;
+export const WITHDRAWAL_FEE_RATE = 0.15;
+export const PROMO_DEFAULT_BONUS = 20;
+export const PROMO_VALIDITY_MS = 60 * 60 * 1000;
 
 export function todayMaputo(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Maputo" }).format(new Date());
@@ -149,7 +154,7 @@ export async function requestWithdrawal(userId: string, amount: number) {
     .eq("status", "PENDING");
   if ((count ?? 0) > 0) throw new Error("Já tem um pedido de saque em análise.");
 
-  const fee = Math.round(amount * 0.03 * 100) / 100;
+  const fee = Math.round(amount * WITHDRAWAL_FEE_RATE * 100) / 100;
   const net = Math.round((amount - fee) * 100) / 100;
   const reference = `REF${Date.now()}${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
@@ -590,4 +595,117 @@ export async function resetPassword(password: string) {
   });
   if (error) throw new Error(error.message);
   return { ok: true };
+}
+
+/* ------------------------------ Planos (admin) ----------------------------- */
+
+export async function updatePlan(
+  adminId: string,
+  planId: number,
+  fields: { name: string; price: number; daily_task_count: number; daily_income: number; duration_days: number; active: boolean },
+) {
+  await assertAdmin(adminId);
+  const name = fields.name.trim();
+  if (!name) throw new Error("Informe o nome do plano.");
+  const nums = [fields.price, fields.daily_task_count, fields.daily_income, fields.duration_days];
+  if (nums.some((n) => !Number.isFinite(n) || n < 0)) throw new Error("Valores inválidos: não são permitidos negativos.");
+  if (fields.daily_task_count <= 0 || fields.duration_days <= 0) throw new Error("Tarefas por dia e duração devem ser maiores que zero.");
+
+  const { data: before } = await supabaseAdmin.from("plans").select("*").eq("id", planId).maybeSingle();
+  if (!before) throw new Error("Plano não encontrado.");
+
+  const { data, error } = await supabaseAdmin
+    .from("plans")
+    .update({
+      name,
+      price: fields.price,
+      daily_task_count: fields.daily_task_count,
+      daily_income: fields.daily_income,
+      duration_days: fields.duration_days,
+      active: fields.active,
+    })
+    .eq("id", planId)
+    .select("*")
+    .single();
+  if (error) {
+    if (error.code === "23505") throw new Error("Já existe um plano com esse nome.");
+    throw new Error(error.message);
+  }
+  await logAdmin(
+    adminId,
+    "UPDATE_PLAN",
+    null,
+    Number(data.price),
+    `Plano #${planId} (${before.name} → ${data.name}) preço ${before.price}→${data.price}, diário ${before.daily_income}→${data.daily_income}, dias ${before.duration_days}→${data.duration_days}, ativo ${before.active}→${data.active}`,
+    "OK",
+  );
+  return data;
+}
+
+/* --------------------------- Recarga secreta --------------------------- */
+
+function randomPromoCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(10);
+  crypto.getRandomValues(bytes);
+  const body = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+  return `RI-${body.slice(0, 5)}-${body.slice(5)}`;
+}
+
+export async function createPromoCode(adminId: string, input: { bonus?: number; maxUses?: number; validityMinutes?: number }) {
+  await assertAdmin(adminId);
+  const bonus = Number(input.bonus ?? PROMO_DEFAULT_BONUS);
+  const maxUses = Math.floor(Number(input.maxUses ?? 1));
+  const validityMinutes = Math.floor(Number(input.validityMinutes ?? 60));
+  if (!Number.isFinite(bonus) || bonus <= 0) throw new Error("O bónus deve ser maior que zero.");
+  if (!Number.isFinite(maxUses) || maxUses <= 0) throw new Error("A quantidade de utilizações deve ser maior que zero.");
+  if (!Number.isFinite(validityMinutes) || validityMinutes <= 0 || validityMinutes > 60 * 24 * 30)
+    throw new Error("Validade inválida.");
+
+  const expiresAt = new Date(Date.now() + validityMinutes * 60 * 1000).toISOString();
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = randomPromoCode();
+    const { data, error } = await supabaseAdmin
+      .from("promo_codes")
+      .insert({ code, bonus, max_uses: maxUses, expires_at: expiresAt, created_by: adminId })
+      .select("*")
+      .single();
+    if (!error) {
+      await logAdmin(adminId, "CREATE_PROMO_CODE", null, bonus, `Código ${code} · ${maxUses} usos · expira ${expiresAt}`, data.id);
+      return data;
+    }
+    if (error.code !== "23505") throw new Error(error.message);
+  }
+  throw new Error("Não foi possível gerar um código único. Tente novamente.");
+}
+
+export async function setPromoCodeActive(adminId: string, codeId: string, active: boolean) {
+  await assertAdmin(adminId);
+  const { data, error } = await supabaseAdmin
+    .from("promo_codes")
+    .update({ active, updated_at: new Date().toISOString() })
+    .eq("id", codeId)
+    .select("code")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Código não encontrado.");
+  await logAdmin(adminId, active ? "ACTIVATE_PROMO_CODE" : "DEACTIVATE_PROMO_CODE", null, null, `Código ${data.code}`, codeId);
+  return { ok: true as const };
+}
+
+export async function redeemPromoCode(
+  userClient: SupabaseClient<Database>,
+  userId: string,
+  code: string,
+  ipHash: string | null,
+) {
+  await assertNotBlocked(userId);
+  const clean = code.trim().toUpperCase();
+  if (!clean) throw new Error("Introduza o código.");
+
+  // A função SQL é transacional e valida expiração/duplicação no servidor usando auth.uid() do token do utilizador.
+  const { data, error } = await userClient.rpc("redeem_promo_code", { _code: clean, _ip_hash: ipHash ?? undefined });
+  if (error) throw new Error(error.message || "Não foi possível resgatar o código.");
+  return data as { balance: number; bonus: number };
 }
