@@ -16,6 +16,9 @@ export function levelFor(activeReferrals: number) {
 export const AFFILIATE_REWARDS: Record<string, number> = { VIDEO: 300, POST: 150 };
 
 export const FIRST_PLAN_BONUS = 100;
+export const WITHDRAWAL_FEE_RATE = 0.15;
+export const PROMO_DEFAULT_BONUS = 20;
+export const PROMO_VALIDITY_MS = 60 * 60 * 1000;
 
 export function todayMaputo(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Maputo" }).format(new Date());
@@ -149,7 +152,7 @@ export async function requestWithdrawal(userId: string, amount: number) {
     .eq("status", "PENDING");
   if ((count ?? 0) > 0) throw new Error("Já tem um pedido de saque em análise.");
 
-  const fee = Math.round(amount * 0.03 * 100) / 100;
+  const fee = Math.round(amount * WITHDRAWAL_FEE_RATE * 100) / 100;
   const net = Math.round((amount - fee) * 100) / 100;
   const reference = `REF${Date.now()}${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
