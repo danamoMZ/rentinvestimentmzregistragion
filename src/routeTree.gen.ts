@@ -24,6 +24,7 @@ import { Route as AppSupportRouteImport } from './routes/app/support'
 import { Route as AppTasksRouteImport } from './routes/app/tasks'
 import { Route as AppTeamRouteImport } from './routes/app/team'
 import { Route as AppWalletRouteImport } from './routes/app/wallet'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,12 +101,17 @@ const AppWalletRoute = AppWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => AppRoute,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
@@ -116,12 +122,13 @@ export interface FileRoutesByFullPath {
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
   '/app/wallet': typeof AppWalletRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
   '/app/wallet': typeof AppWalletRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -139,7 +147,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/app': typeof AppRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/app/tasks': typeof AppTasksRoute
   '/app/team': typeof AppTeamRoute
   '/app/wallet': typeof AppWalletRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/app/tasks'
     | '/app/team'
     | '/app/wallet'
+    | '/auth/callback'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/app/tasks'
     | '/app/team'
     | '/app/wallet'
+    | '/auth/callback'
     | '/app'
   id:
     | '__root__'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/app/tasks'
     | '/app/team'
     | '/app/wallet'
+    | '/auth/callback'
     | '/app/'
   fileRoutesById: FileRoutesById
 }
@@ -209,7 +221,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWalletRouteImport
       parentRoute: typeof AppRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
@@ -352,11 +371,21 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AppRoute: AppRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
