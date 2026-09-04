@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2 } from "lucide-react";
+import { Gift, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/use-session";
-import { withdrawFn } from "@/lib/app.functions";
+import { redeemPromoCodeFn, withdrawFn } from "@/lib/app.functions";
 import { MZN, STATUS_CLASS, STATUS_LABEL, formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,28 @@ function WalletPage() {
   const withdraw = useServerFn(withdrawFn);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const redeem = useServerFn(redeemPromoCodeFn);
+  const [promo, setPromo] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+
+  const submitPromo = async () => {
+    const code = promo.trim().toUpperCase();
+    if (!code) {
+      toast.error("Introduza o código de recarga secreta.");
+      return;
+    }
+    setPromoBusy(true);
+    try {
+      const result = await redeem({ data: { code } });
+      toast.success(`Recarga secreta aplicada! +${MZN(result.bonus)} no seu saldo.`);
+      setPromo("");
+      queryClient.invalidateQueries();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível resgatar o código.");
+    } finally {
+      setPromoBusy(false);
+    }
+  };
 
   const { data: withdrawals } = useQuery({
     queryKey: ["withdrawals", userId],
@@ -66,7 +88,7 @@ function WalletPage() {
   });
 
   const value = Number(amount || 0);
-  const fee = Math.round(value * 0.03 * 100) / 100;
+  const fee = Math.round(value * 0.15 * 100) / 100;
 
   const submit = async () => {
     if (!Number.isFinite(value) || value < 125) {
@@ -106,7 +128,7 @@ function WalletPage() {
       <div className="surface-card space-y-3 p-4">
         <h2 className="text-sm font-semibold">Pedir saque</h2>
         <p className="text-xs text-muted-foreground">
-          Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 3% · Requer plano ativo.
+          Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 15% · Requer plano ativo.
         </p>
         <div className="space-y-1.5">
           <Label htmlFor="amount">Valor (MZN)</Label>
@@ -122,7 +144,7 @@ function WalletPage() {
         {value > 0 && (
           <div className="rounded-lg border border-border bg-secondary p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Taxa (3%)</span>
+              <span className="text-muted-foreground">Taxa (15%)</span>
               <span className="font-semibold">{MZN(fee)}</span>
             </div>
             <div className="flex justify-between">
@@ -137,6 +159,28 @@ function WalletPage() {
         <Button className="w-full" onClick={submit} disabled={busy || value <= 0}>
           {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Pedir saque
         </Button>
+      </div>
+
+      <div className="surface-card space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <Gift className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Recarga secreta</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Tem um código secreto? Introduza-o abaixo. Cada código vale por 1 hora e só pode ser usado uma vez por conta.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            value={promo}
+            onChange={(e) => setPromo(e.target.value.toUpperCase())}
+            placeholder="RI-XXXXX-XXXXX"
+            className="font-mono uppercase"
+            autoCapitalize="characters"
+          />
+          <Button onClick={submitPromo} disabled={promoBusy || !promo.trim()}>
+            {promoBusy && <Loader2 className="mr-2 size-4 animate-spin" />} Resgatar
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="ledger">

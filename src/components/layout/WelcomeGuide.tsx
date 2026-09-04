@@ -40,7 +40,7 @@ export function WelcomeGuide() {
   const { data: plans } = useQuery({
     queryKey: ["public-plans"],
     queryFn: async () => {
-      const { data } = await supabase.from("plans").select("*").order("id");
+      const { data } = await supabase.from("plans").select("*").eq("active", true).order("sort_order").order("id");
       return data ?? [];
     },
   });
@@ -125,7 +125,7 @@ export function WelcomeGuide() {
 
           <Section icon={Wallet} title="Levantamentos">
             <p>
-              Saque a partir de <strong>125 MZN</strong> (máximo 18.000 MZN) com taxa de 3%, diretamente para a
+              Saque a partir de <strong>125 MZN</strong> (máximo 18.000 MZN) com taxa de 15%, diretamente para a
               sua carteira. É necessário ter um plano ativo.
             </p>
           </Section>

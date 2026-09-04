@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, TrendingUp, Users, Wallet, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, TrendingUp, Users, Wallet } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 
@@ -57,7 +57,7 @@ function Landing() {
             </span>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
               Rendimento diário com os planos{" "}
-              <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">RENT 1 a RENT 9</span>
+              <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">RENT 1 a RENT 11</span>
             </h1>
             <p className="mt-4 max-w-lg text-muted-foreground">
               Ative o seu plano, complete as tarefas diárias e acompanhe cada movimento do seu saldo em meticais.
@@ -115,9 +115,6 @@ function Landing() {
       <footer className="border-t border-border bg-card">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-8 text-center">
           <Logo size={32} />
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CheckCircle2 className="size-3.5 text-success" /> Feito com excelência em Maputo · Valores em MZN
-          </p>
         </div>
       </footer>
     </div>

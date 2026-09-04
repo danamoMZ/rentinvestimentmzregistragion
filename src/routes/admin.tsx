@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ShieldAlert, ExternalLink, ArrowLeft } from "lucide-react";
+import { Loader2, ShieldAlert, ExternalLink, ArrowLeft, Copy, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useSession } from "@/hooks/use-session";
@@ -17,6 +17,9 @@ import {
   setBlockedFn,
   ticketStatusFn,
   replyTicketFn,
+  updatePlanFn,
+  createPromoCodeFn,
+  setPromoCodeActiveFn,
 } from "@/lib/app.functions";
 import { MZN, PAYMENT_FIELDS, STATUS_CLASS, STATUS_LABEL, SUPPORT_FIELDS, formatDateTime } from "@/lib/format";
 import { Logo } from "@/components/brand/Logo";
@@ -105,6 +108,8 @@ function AdminPage() {
             <TabsTrigger value="users">Utilizadores</TabsTrigger>
             <TabsTrigger value="tickets">Suporte</TabsTrigger>
             <TabsTrigger value="broadcast">Avisos</TabsTrigger>
+            <TabsTrigger value="plans">Planos</TabsTrigger>
+            <TabsTrigger value="promo">Recarga secreta</TabsTrigger>
             <TabsTrigger value="settings">Definições</TabsTrigger>
           </TabsList>
 
@@ -125,6 +130,12 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="broadcast">
             <Broadcast />
+          </TabsContent>
+          <TabsContent value="plans">
+            <PlansAdmin onDone={refresh} />
+          </TabsContent>
+          <TabsContent value="promo">
+            <PromoAdmin onDone={refresh} />
           </TabsContent>
           <TabsContent value="settings">
             <Settings />
@@ -698,5 +709,352 @@ function Settings() {
         </Button>
       </div>
     </Card>
+  );
+}
+
+/* ------------------------------- Planos ------------------------------- */
+
+type PlanRow = {
+  id: number;
+  name: string;
+  price: number;
+  daily_task_count: number;
+  task_value: number;
+  daily_income: number;
+  duration_days: number;
+  total_task_income: number;
+  active: boolean;
+  sort_order: number;
+};
+
+type PlanDraft = { name: string; price: string; daily_task_count: string; daily_income: string; duration_days: string; active: boolean };
+
+function PlansAdmin({ onDone }: { onDone: () => void }) {
+  const update = useServerFn(updatePlanFn);
+  const [drafts, setDrafts] = useState<Record<number, PlanDraft>>({});
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const { data: plans, isLoading } = useQuery({
+    queryKey: ["admin-plans"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plans").select("*").order("sort_order").order("id");
+      if (error) throw error;
+      return data as PlanRow[];
+    },
+  });
+
+  const draftFor = (p: PlanRow): PlanDraft =>
+    drafts[p.id] ?? {
+      name: p.name,
+      price: String(p.price),
+      daily_task_count: String(p.daily_task_count),
+      daily_income: String(p.daily_income),
+      duration_days: String(p.duration_days),
+      active: p.active,
+    };
+
+  const setDraft = (p: PlanRow, patch: Partial<PlanDraft>) =>
+    setDrafts((prev) => ({ ...prev, [p.id]: { ...draftFor(p), ...patch } }));
+
+  const save = async (p: PlanRow) => {
+    const d = draftFor(p);
+    const price = Number(d.price);
+    const tasks = Number(d.daily_task_count);
+    const income = Number(d.daily_income);
+    const days = Number(d.duration_days);
+    if ([price, tasks, income, days].some((n) => !Number.isFinite(n) || n < 0)) {
+      toast.error("Valores inválidos: não são permitidos negativos.");
+      return;
+    }
+    if (tasks <= 0 || days <= 0) {
+      toast.error("Tarefas por dia e duração devem ser maiores que zero.");
+      return;
+    }
+    setBusyId(p.id);
+    try {
+      await update({
+        data: {
+          planId: p.id,
+          fields: { name: d.name, price, daily_task_count: tasks, daily_income: income, duration_days: days, active: d.active },
+        },
+      });
+      toast.success(`${d.name} atualizado. Valor por tarefa e total recalculados.`);
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      });
+      onDone();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao guardar o plano.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (isLoading) return <Card><Loader2 className="mx-auto size-5 animate-spin text-primary" /></Card>;
+
+  return (
+    <div className="space-y-3">
+      <Card>
+        <p className="text-xs text-muted-foreground">
+          Edite preço, tarefas/dia, ganho diário e duração. O valor por tarefa (ganho diário ÷ tarefas) e o total do ciclo
+          (ganho diário × dias) são calculados automaticamente. Planos inativos deixam de aparecer aos utilizadores.
+        </p>
+      </Card>
+      {(plans ?? []).map((p) => {
+        const d = draftFor(p);
+        const income = Number(d.daily_income) || 0;
+        const tasks = Number(d.daily_task_count) || 0;
+        const days = Number(d.duration_days) || 0;
+        const perTask = tasks > 0 ? Math.round((income / tasks) * 100) / 100 : 0;
+        const total = Math.round(income * days * 100) / 100;
+        const num = (key: keyof PlanDraft, label: string) => (
+          <div className="space-y-1">
+            <Label className="text-xs">{label}</Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={d[key] as string}
+              onChange={(e) => setDraft(p, { [key]: e.target.value } as Partial<PlanDraft>)}
+            />
+          </div>
+        );
+        return (
+          <Card key={p.id}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">#{p.id}</span>
+                <Input className="h-8 w-40 font-semibold" value={d.name} onChange={(e) => setDraft(p, { name: e.target.value })} />
+              </div>
+              <label className="flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={d.active} onChange={(e) => setDraft(p, { active: e.target.checked })} />
+                Ativo
+              </label>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-4">
+              {num("price", "Preço (MZN)")}
+              {num("daily_task_count", "Tarefas/dia")}
+              {num("daily_income", "Ganho diário (MZN)")}
+              {num("duration_days", "Duração (dias)")}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>
+                Por tarefa: <strong className="text-foreground">{MZN(perTask)}</strong> · Total do ciclo:{" "}
+                <strong className="text-foreground">{MZN(total)}</strong>
+              </span>
+              <Button size="sm" onClick={() => save(p)} disabled={busyId !== null}>
+                {busyId === p.id && <Loader2 className="mr-2 size-4 animate-spin" />} Guardar
+              </Button>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+/* --------------------------- Recarga secreta --------------------------- */
+
+type PromoRow = {
+  id: string;
+  code: string;
+  bonus: number;
+  max_uses: number;
+  uses_count: number;
+  expires_at: string;
+  active: boolean;
+  created_at: string;
+};
+
+function useNow(intervalMs = 1000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(t);
+  }, [intervalMs]);
+  return now;
+}
+
+function countdown(expiresAt: string, now: number) {
+  const diff = Math.max(0, new Date(expiresAt).getTime() - now);
+  const s = Math.floor(diff / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+function PromoAdmin({ onDone }: { onDone: () => void }) {
+  const create = useServerFn(createPromoCodeFn);
+  const setActive = useServerFn(setPromoCodeActiveFn);
+  const now = useNow();
+  const [bonus, setBonus] = useState("20");
+  const [maxUses, setMaxUses] = useState("1");
+  const [busy, setBusy] = useState(false);
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const { data: codes } = useQuery({
+    queryKey: ["admin-promo-codes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("promo_codes").select("*").order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      return data as PromoRow[];
+    },
+    refetchInterval: 15000,
+  });
+
+  const { data: redemptions } = useQuery({
+    queryKey: ["admin-promo-redemptions"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("promo_redemptions")
+        .select("id, code_id, user_id, bonus_value, redeemed_at, status")
+        .order("redeemed_at", { ascending: false })
+        .limit(100);
+      return data ?? [];
+    },
+  });
+  const profiles = useProfilesMap();
+  const codeById = new Map((codes ?? []).map((c) => [c.id, c.code]));
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Código copiado!");
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
+
+  const generate = async () => {
+    const b = Number(bonus);
+    const m = Number(maxUses);
+    if (!Number.isFinite(b) || b <= 0) {
+      toast.error("O bónus deve ser maior que zero.");
+      return;
+    }
+    if (!Number.isFinite(m) || m <= 0) {
+      toast.error("A quantidade de utilizações deve ser maior que zero.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const created = await create({ data: { bonus: b, maxUses: Math.floor(m), validityMinutes: 60 } });
+      toast.success(`Código ${created.code} gerado — válido por 1 hora.`);
+      await copy(created.code);
+      onDone();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar o código.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggle = async (c: PromoRow) => {
+    setToggling(c.id);
+    try {
+      await setActive({ data: { codeId: c.id, active: !c.active } });
+      toast.success(c.active ? "Código desativado." : "Código reativado.");
+      onDone();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar o código.");
+    } finally {
+      setToggling(null);
+    }
+  };
+
+  const statusOf = (c: PromoRow) => {
+    if (!c.active) return { label: "Desativado", cls: "border-border bg-muted text-muted-foreground" };
+    if (new Date(c.expires_at).getTime() <= now) return { label: "Expirado", cls: STATUS_CLASS["REJECTED"] ?? "" };
+    if (c.uses_count >= c.max_uses) return { label: "Esgotado", cls: STATUS_CLASS["REJECTED"] ?? "" };
+    return { label: "Ativo", cls: STATUS_CLASS["APPROVED"] ?? "" };
+  };
+
+  return (
+    <div className="space-y-3">
+      <Card>
+        <div className="flex items-center gap-2">
+          <Gift className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">Gerar código de recarga secreta</h2>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Cada código é válido por <strong>1 hora</strong>, tem limite de utilizações e só pode ser usado uma vez por
+          utilizador. O bónus é creditado de imediato no saldo.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Bónus (MZN)</Label>
+            <Input type="number" min={1} value={bonus} onChange={(e) => setBonus(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Utilizações máximas</Label>
+            <Input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} />
+          </div>
+          <div className="flex items-end">
+            <Button className="w-full" onClick={generate} disabled={busy}>
+              {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Gerar código (1h)
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="text-sm font-semibold">Códigos</h2>
+        <div className="mt-2 divide-y divide-border">
+          {(codes ?? []).length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">Nenhum código gerado.</p>}
+          {(codes ?? []).map((c) => {
+            const st = statusOf(c);
+            const live = st.label === "Ativo";
+            return (
+              <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <code className="font-mono text-sm font-bold tracking-wider">{c.code}</code>
+                    <Button size="icon" variant="ghost" className="size-7" aria-label="Copiar código" onClick={() => copy(c.code)}>
+                      <Copy className="size-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {MZN(c.bonus)} · {c.uses_count}/{c.max_uses} usos · criado {formatDateTime(c.created_at)}
+                    {live && (
+                      <>
+                        {" "}· expira em <span className="font-mono font-semibold text-foreground">{countdown(c.expires_at, now)}</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${st.cls}`}>{st.label}</span>
+                  <Button size="sm" variant="outline" onClick={() => toggle(c)} disabled={toggling !== null}>
+                    {toggling === c.id && <Loader2 className="mr-2 size-3.5 animate-spin" />}
+                    {c.active ? "Desativar" : "Reativar"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="text-sm font-semibold">Histórico de resgates</h2>
+        <div className="mt-2 divide-y divide-border">
+          {(redemptions ?? []).length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">Sem resgates.</p>}
+          {(redemptions ?? []).map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{profiles?.[r.user_id]?.full_name ?? r.user_id.slice(0, 8)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {codeById.get(r.code_id) ?? "—"} · {formatDateTime(r.redeemed_at)}
+                </p>
+              </div>
+              <span className="font-bold text-success">+{MZN(r.bonus_value)}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
   );
 }

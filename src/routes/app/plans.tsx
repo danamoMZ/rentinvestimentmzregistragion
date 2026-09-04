@@ -49,7 +49,7 @@ function Plans() {
   const { data: plans, isLoading } = useQuery({
     queryKey: ["plans"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("plans").select("*").order("id");
+      const { data, error } = await supabase.from("plans").select("*").eq("active", true).order("sort_order").order("id");
       if (error) throw error;
       return data as Plan[];
     },
