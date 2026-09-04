@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, TrendingUp, Users, Wallet, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, TrendingUp, Users, Wallet } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 
