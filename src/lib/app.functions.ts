@@ -194,8 +194,9 @@ export const redeemPromoCodeFn = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data, context }) => {
     const ops = await import("@/lib/ops.server");
-    const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const ip = getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ?? getRequestHeader("cf-connecting-ip") ?? null;
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const headers = getRequest().headers;
+    const ip = headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("cf-connecting-ip") || null;
     let ipHash: string | null = null;
     if (ip) {
       const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
