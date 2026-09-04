@@ -159,3 +159,47 @@ export const resetPasswordFn = createServerFn({ method: "POST" })
     const ops = await import("@/lib/ops.server");
     return ops.resetPassword(data.password);
   });
+
+export const updatePlanFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      planId: number;
+      fields: { name: string; price: number; daily_task_count: number; daily_income: number; duration_days: number; active: boolean };
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.updatePlan(context.userId, data.planId, data.fields);
+  });
+
+export const createPromoCodeFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { bonus?: number; maxUses?: number; validityMinutes?: number }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.createPromoCode(context.userId, data);
+  });
+
+export const setPromoCodeActiveFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { codeId: string; active: boolean }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.setPromoCodeActive(context.userId, data.codeId, data.active);
+  });
+
+export const redeemPromoCodeFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { code: string }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const ip = getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ?? getRequestHeader("cf-connecting-ip") ?? null;
+    let ipHash: string | null = null;
+    if (ip) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
+      ipHash = Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    return ops.redeemPromoCode(context.supabase, context.userId, data.code, ipHash);
+  });
