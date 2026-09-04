@@ -705,7 +705,7 @@ export async function redeemPromoCode(
   if (!clean) throw new Error("Introduza o código.");
 
   // A função SQL é transacional e valida expiração/duplicação no servidor usando auth.uid() do token do utilizador.
-  const { data, error } = await userClient.rpc("redeem_promo_code", { _code: clean, _ip_hash: ipHash ?? undefined });
+  const { data, error } = await userClient.rpc("redeem_promo_code", ipHash ? { _code: clean, _ip_hash: ipHash } : { _code: clean });
   if (error) throw new Error(error.message || "Não foi possível resgatar o código.");
   return data as { balance: number; bonus: number };
 }

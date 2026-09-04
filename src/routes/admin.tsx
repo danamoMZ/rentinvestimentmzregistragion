@@ -931,8 +931,14 @@ function PromoAdmin({ onDone }: { onDone: () => void }) {
   const generate = async () => {
     const b = Number(bonus);
     const m = Number(maxUses);
-    if (!Number.isFinite(b) || b <= 0) return toast.error("O bónus deve ser maior que zero.");
-    if (!Number.isFinite(m) || m <= 0) return toast.error("A quantidade de utilizações deve ser maior que zero.");
+    if (!Number.isFinite(b) || b <= 0) {
+      toast.error("O bónus deve ser maior que zero.");
+      return;
+    }
+    if (!Number.isFinite(m) || m <= 0) {
+      toast.error("A quantidade de utilizações deve ser maior que zero.");
+      return;
+    }
     setBusy(true);
     try {
       const created = await create({ data: { bonus: b, maxUses: Math.floor(m), validityMinutes: 60 } });
