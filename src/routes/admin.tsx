@@ -20,6 +20,7 @@ import {
   updatePlanFn,
   createPromoCodeFn,
   setPromoCodeActiveFn,
+  grantShareRewardFn,
 } from "@/lib/app.functions";
 import { MZN, PAYMENT_FIELDS, STATUS_CLASS, STATUS_LABEL, SUPPORT_FIELDS, formatDateTime } from "@/lib/format";
 import { Logo } from "@/components/brand/Logo";
@@ -110,6 +111,7 @@ function AdminPage() {
             <TabsTrigger value="broadcast">Avisos</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="promo">Recarga secreta</TabsTrigger>
+            <TabsTrigger value="share">Partilha e Ganha</TabsTrigger>
             <TabsTrigger value="settings">Definições</TabsTrigger>
           </TabsList>
 
@@ -136,6 +138,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="promo">
             <PromoAdmin onDone={refresh} />
+          </TabsContent>
+          <TabsContent value="share">
+            <ShareRewardAdmin />
           </TabsContent>
           <TabsContent value="settings">
             <Settings />
