@@ -204,3 +204,19 @@ export const redeemPromoCodeFn = createServerFn({ method: "POST" })
     }
     return ops.redeemPromoCode(context.supabase, context.userId, data.code, ipHash);
   });
+
+export const grantShareRewardFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { publicId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.grantShareReward(context.userId, data.publicId);
+  });
+
+export const claimShareRewardFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { rewardId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.claimShareReward(context.supabase, context.userId, data.rewardId);
+  });
