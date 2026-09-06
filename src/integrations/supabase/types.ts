@@ -456,6 +456,42 @@ export type Database = {
         }
         Relationships: []
       }
+      share_rewards: {
+        Row: {
+          amount: number
+          claimed_at: string | null
+          created_at: string
+          expires_at: string
+          granted_by: string | null
+          id: string
+          reward_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          claimed_at?: string | null
+          created_at?: string
+          expires_at: string
+          granted_by?: string | null
+          id?: string
+          reward_date: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          claimed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          granted_by?: string | null
+          id?: string
+          reward_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           key: string
@@ -690,6 +726,7 @@ export type Database = {
         }
         Returns: number
       }
+      claim_share_reward: { Args: { _reward_id: string }; Returns: Json }
       claim_task: { Args: { _task_index: number }; Returns: Json }
       expire_plans: { Args: never; Returns: number }
       has_role: {
