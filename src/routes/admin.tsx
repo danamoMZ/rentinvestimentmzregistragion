@@ -1063,3 +1063,104 @@ function PromoAdmin({ onDone }: { onDone: () => void }) {
     </div>
   );
 }
+
+function ShareRewardAdmin() {
+  const grant = useServerFn(grantShareRewardFn);
+  const queryClient = useQueryClient();
+  const [publicId, setPublicId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const now = useNow();
+
+  const { data: rewards } = useQuery({
+    queryKey: ["admin-share-rewards"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("share_rewards")
+        .select("id, user_id, amount, reward_date, expires_at, status, claimed_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return data ?? [];
+    },
+  });
+  const { data: profiles } = useQuery({
+    queryKey: ["admin-share-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, public_id");
+      return new Map((data ?? []).map((p) => [p.id, p]));
+    },
+  });
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const res = await grant({ data: { publicId } });
+      toast.success(`Bónus de 40 MZN enviado para ${res.name || res.publicId}. Válido por 3 horas.`);
+      setPublicId("");
+      queryClient.invalidateQueries({ queryKey: ["admin-share-rewards"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar o bónus.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const statusOf = (r: { status: string; expires_at: string }) => {
+    if (r.status === "CLAIMED") return { label: "Reivindicado", cls: "text-emerald-400" };
+    if (r.status === "EXPIRED" || new Date(r.expires_at).getTime() <= now) return { label: "Expirado", cls: "text-destructive" };
+    return { label: `Pendente · ${countdown(r.expires_at, now)}`, cls: "text-primary" };
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <div className="space-y-3">
+          <div>
+            <p className="font-semibold">PARTILHA E GANHA</p>
+            <p className="text-xs text-muted-foreground">
+              Introduza o ID do utilizador. Ele recebe uma notificação com o botão para reivindicar 40 MZN, válida por 3 horas.
+              Cada ID só pode ser usado 1 vez por dia (dia calculado no servidor, fuso de Maputo).
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="share-id">ID do utilizador</Label>
+            <Input
+              id="share-id"
+              placeholder="Ex.: A1B2C3D4E5"
+              value={publicId}
+              onChange={(e) => setPublicId(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && publicId.trim() && !busy && submit()}
+            />
+          </div>
+          <Button onClick={submit} disabled={busy || !publicId.trim()} className="gap-1.5">
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Gift className="size-4" />} Enviar bónus de 40 MZN
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
+        <p className="mb-3 font-semibold">Histórico</p>
+        {(rewards ?? []).length === 0 && <p className="text-sm text-muted-foreground">Ainda sem registos.</p>}
+        <div className="divide-y divide-border">
+          {(rewards ?? []).map((r) => {
+            const p = profiles?.get(r.user_id);
+            const s = statusOf(r);
+            return (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {p?.public_id ?? "—"} · {p?.full_name ?? "Utilizador"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.reward_date} · {MZN(r.amount)} · enviado {formatDateTime(r.created_at)}
+                    {r.claimed_at ? ` · reivindicado ${formatDateTime(r.claimed_at)}` : ""}
+                  </p>
+                </div>
+                <span className={`font-mono text-xs ${s.cls}`}>{s.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
