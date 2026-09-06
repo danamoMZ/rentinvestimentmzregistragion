@@ -709,3 +709,57 @@ export async function redeemPromoCode(
   if (error) throw new Error(error.message || "Não foi possível resgatar o código.");
   return data as { balance: number; bonus: number };
 }
+
+// ===== PARTILHA E GANHA =====
+export const SHARE_REWARD_AMOUNT = 40;
+export const SHARE_REWARD_VALIDITY_MS = 3 * 60 * 60 * 1000;
+
+export async function grantShareReward(adminId: string, publicId: string) {
+  await assertAdmin(adminId);
+  const clean = publicId.trim().toUpperCase();
+  if (!clean) throw new Error("Introduza o ID do utilizador.");
+
+  const { data: profile, error } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, public_id, blocked")
+    .eq("public_id", clean)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!profile) throw new Error("ID não encontrado. Verifique o ID do utilizador.");
+  if (profile.blocked) throw new Error("Este utilizador está bloqueado.");
+
+  // Dia calculado no servidor (fuso de Maputo) — nunca pelo dispositivo.
+  const rewardDate = todayMaputo();
+  const expiresAt = new Date(Date.now() + SHARE_REWARD_VALIDITY_MS).toISOString();
+
+  const { data: reward, error: insErr } = await supabaseAdmin
+    .from("share_rewards")
+    .insert({
+      user_id: profile.id,
+      amount: SHARE_REWARD_AMOUNT,
+      reward_date: rewardDate,
+      expires_at: expiresAt,
+      granted_by: adminId,
+    })
+    .select("id, expires_at")
+    .single();
+  if (insErr) {
+    if (insErr.code === "23505") throw new Error(`O ID ${clean} já foi usado hoje. Cada ID só pode ser usado 1 vez por dia.`);
+    throw new Error(insErr.message);
+  }
+
+  await notify(
+    profile.id,
+    "PARTILHA E GANHA",
+    `Tem ${SHARE_REWARD_AMOUNT} MZN para reivindicar! Clique em "Reivindicar" nas Notificações dentro de 3 horas. Após esse prazo o bónus expira.`,
+  );
+  await logAdmin(adminId, "SHARE_REWARD", profile.id, SHARE_REWARD_AMOUNT, `ID ${clean}`, reward.id);
+  return { ok: true as const, name: profile.full_name, publicId: clean, expiresAt: reward.expires_at };
+}
+
+export async function claimShareReward(userClient: SupabaseClient<Database>, userId: string, rewardId: string) {
+  await assertNotBlocked(userId);
+  const { data, error } = await userClient.rpc("claim_share_reward", { _reward_id: rewardId });
+  if (error) throw new Error(error.message || "Não foi possível reivindicar o bónus.");
+  return data as { balance: number; amount: number };
+}

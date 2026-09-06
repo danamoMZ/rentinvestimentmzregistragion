@@ -7,6 +7,7 @@ import { useSession } from "@/hooks/use-session";
 import { useDeviceNotifications } from "@/hooks/use-device-notifications";
 import { formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { ShareRewardCard } from "@/components/layout/ShareRewardCard";
 
 export const Route = createFileRoute("/app/notifications")({
   component: Notifications,
@@ -57,6 +58,8 @@ function Notifications() {
           <CheckCheck className="size-4" /> Marcar lidas
         </Button>
       </div>
+
+      <ShareRewardCard />
 
       <div className="surface-card flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex items-start gap-3">

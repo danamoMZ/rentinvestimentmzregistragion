@@ -17,6 +17,7 @@ import { useProfile, useSession } from "@/hooks/use-session";
 import { syncFn } from "@/lib/app.functions";
 import { MZN, formatDate, formatDateTime, todayMaputo } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { ShareRewardCard } from "@/components/layout/ShareRewardCard";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: Dashboard,
@@ -97,6 +98,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <ShareRewardCard />
       <section className="overflow-hidden rounded-2xl bg-[image:var(--gradient-brand)] p-6 text-primary-foreground shadow-[var(--shadow-float)]">
         <p className="text-sm/none opacity-90">Olá, {profile?.full_name || "investidor"} 👋</p>
         <p className="mt-3 text-xs uppercase tracking-widest opacity-80">Saldo disponível</p>
