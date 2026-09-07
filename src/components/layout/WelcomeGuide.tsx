@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Gift, Layers, CheckSquare, Users, HeartHandshake, Wallet, Send } from "lucide-react";
+import { Gift, Layers, CheckSquare, Users, HeartHandshake, Wallet, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { MZN, toHref } from "@/lib/format";
@@ -19,6 +19,7 @@ const STORAGE_KEY = "ri-welcome-shown";
 export function WelcomeGuide() {
   const { userId } = useSession();
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -49,15 +50,15 @@ export function WelcomeGuide() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden p-0">
+        <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle className="text-xl">Bem-vindo à RENT INVESTIMENT 👋</DialogTitle>
           <DialogDescription>
             Veja como a plataforma funciona e como pode maximizar os seus ganhos.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 text-sm">
+        <div className={`space-y-4 overflow-y-auto px-6 py-2 text-sm ${expanded ? "" : "max-h-[38vh]"}`}>
           <Section icon={Gift} title="Bónus de boas-vindas">
             <p>
               Ao criar a sua conta recebe automaticamente <strong>50 MZN</strong> de bónus de registo, já
@@ -131,7 +132,26 @@ export function WelcomeGuide() {
           </Section>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
+        <div className="px-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full gap-1 text-xs"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? (
+              <>
+                Mostrar menos <ChevronUp className="size-4" />
+              </>
+            ) : (
+              <>
+                Mostrar mais <ChevronDown className="size-4" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        <DialogFooter className="flex-col gap-2 px-6 pb-6 sm:flex-col">
           {telegram && (
             <Button asChild className="w-full gap-2">
               <a href={toHref(telegram)} target="_blank" rel="noopener noreferrer">
