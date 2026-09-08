@@ -17,6 +17,7 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppAffiliateRouteImport } from './routes/app/affiliate'
 import { Route as AppDashboardRouteImport } from './routes/app/dashboard'
 import { Route as AppDonationsRouteImport } from './routes/app/donations'
+import { Route as AppGameRouteImport } from './routes/app/game'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppPlansRouteImport } from './routes/app/plans'
 import { Route as AppProfileRouteImport } from './routes/app/profile'
@@ -64,6 +65,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppDonationsRoute = AppDonationsRouteImport.update({
   id: '/donations',
   path: '/donations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGameRoute = AppGameRouteImport.update({
+  id: '/game',
+  path: '/game',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
+  '/app/game': typeof AppGameRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/profile': typeof AppProfileRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
+  '/app/game': typeof AppGameRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/profile': typeof AppProfileRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/app/affiliate': typeof AppAffiliateRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/donations': typeof AppDonationsRoute
+  '/app/game': typeof AppGameRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/plans': typeof AppPlansRoute
   '/app/profile': typeof AppProfileRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/app/affiliate'
     | '/app/dashboard'
     | '/app/donations'
+    | '/app/game'
     | '/app/notifications'
     | '/app/plans'
     | '/app/profile'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/app/affiliate'
     | '/app/dashboard'
     | '/app/donations'
+    | '/app/game'
     | '/app/notifications'
     | '/app/plans'
     | '/app/profile'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/app/affiliate'
     | '/app/dashboard'
     | '/app/donations'
+    | '/app/game'
     | '/app/notifications'
     | '/app/plans'
     | '/app/profile'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDonationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/game': {
+      id: '/app/game'
+      path: '/game'
+      fullPath: '/app/game'
+      preLoaderRoute: typeof AppGameRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/notifications': {
       id: '/app/notifications'
       path: '/notifications'
@@ -345,6 +364,7 @@ interface AppRouteChildren {
   AppAffiliateRoute: typeof AppAffiliateRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDonationsRoute: typeof AppDonationsRoute
+  AppGameRoute: typeof AppGameRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppPlansRoute: typeof AppPlansRoute
   AppProfileRoute: typeof AppProfileRoute
@@ -359,6 +379,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAffiliateRoute: AppAffiliateRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDonationsRoute: AppDonationsRoute,
+  AppGameRoute: AppGameRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppPlansRoute: AppPlansRoute,
   AppProfileRoute: AppProfileRoute,
