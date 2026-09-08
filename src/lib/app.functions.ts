@@ -220,3 +220,17 @@ export const claimShareRewardFn = createServerFn({ method: "POST" })
     const ops = await import("@/lib/ops.server");
     return ops.claimShareReward(context.supabase, context.userId, data.rewardId);
   });
+
+export const spinRouletteFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.spinRoulette(context.userId);
+  });
+
+export const rouletteFeedFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const ops = await import("@/lib/ops.server");
+    return ops.rouletteFeed();
+  });

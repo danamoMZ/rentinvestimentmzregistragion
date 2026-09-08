@@ -18,7 +18,7 @@ export function levelFor(activeReferrals: number) {
 export const AFFILIATE_REWARDS: Record<string, number> = { VIDEO: 300, POST: 150 };
 
 export const FIRST_PLAN_BONUS = 100;
-export const WITHDRAWAL_FEE_RATE = 0.15;
+export const WITHDRAWAL_FEE_RATE = 0.03;
 export const PROMO_DEFAULT_BONUS = 20;
 export const PROMO_VALIDITY_MS = 60 * 60 * 1000;
 
@@ -762,4 +762,79 @@ export async function claimShareReward(userClient: SupabaseClient<Database>, use
   const { data, error } = await userClient.rpc("claim_share_reward", { _reward_id: rewardId });
   if (error) throw new Error(error.message || "Não foi possível reivindicar o bónus.");
   return data as { balance: number; amount: number };
+}
+
+/* ------------------------------ Roleta da sorte ---------------------------- */
+
+export const ROULETTE_COST = 5;
+export const ROULETTE_SEGMENTS = [2, 5, 10, 20, 50, 100, 150, 30];
+const ROULETTE_SCRIPTED = [2, 2, 50, 100, 2, 2, 300];
+const ROULETTE_LUCKY = [5, 10, 20, 30, 50];
+// 5 vencedores em cada 5000 giros globais.
+const ROULETTE_LUCKY_RATE = 5 / 5000;
+
+function roulettePrizeFor(spinIndex: number): number {
+  if (spinIndex <= ROULETTE_SCRIPTED.length) return ROULETTE_SCRIPTED[spinIndex - 1]!;
+  if (Math.random() < ROULETTE_LUCKY_RATE) {
+    return ROULETTE_LUCKY[Math.floor(Math.random() * ROULETTE_LUCKY.length)]!;
+  }
+  return 2;
+}
+
+export async function spinRoulette(userId: string) {
+  const profile = await assertNotBlocked(userId);
+  if (Number(profile.balance) < ROULETTE_COST) {
+    throw new Error(`Saldo insuficiente. Precisa de ${ROULETTE_COST} MZN para girar.`);
+  }
+
+  const { count } = await supabaseAdmin
+    .from("roulette_spins")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  const spinIndex = (count ?? 0) + 1;
+
+  await ledger(userId, "GAME_SPIN", -ROULETTE_COST, `SPIN-${userId}-${spinIndex}`, "Roleta da sorte — giro");
+
+  const prize = roulettePrizeFor(spinIndex);
+  // A roleta tem 8 casas; prémios acima de 150 param em 150 com bónus x2.
+  const multiplier = prize > 150 ? 2 : 1;
+  const segmentValue = prize / multiplier;
+  const segmentIndex = Math.max(0, ROULETTE_SEGMENTS.indexOf(segmentValue));
+
+  await supabaseAdmin.from("roulette_spins").insert({
+    user_id: userId,
+    cost: ROULETTE_COST,
+    prize,
+    spin_index: spinIndex,
+  });
+
+  let balance = Number(profile.balance) - ROULETTE_COST;
+  if (prize > 0) {
+    await ledger(userId, "GAME_WIN", prize, `WIN-${userId}-${spinIndex}`, `Roleta da sorte — ganhou ${prize} MZN`);
+    balance += prize;
+  }
+
+  return { prize, segmentIndex, multiplier, spinIndex, balance };
+}
+
+export async function rouletteFeed() {
+  const { data: spins } = await supabaseAdmin
+    .from("roulette_spins")
+    .select("id, user_id, prize, created_at")
+    .gt("prize", 0)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const rows = spins ?? [];
+  if (rows.length === 0) return [] as { id: string; publicId: string; prize: number; createdAt: string }[];
+  const { data: profiles } = await supabaseAdmin
+    .from("profiles")
+    .select("id, public_id")
+    .in("id", Array.from(new Set(rows.map((r) => r.user_id))));
+  const map = new Map((profiles ?? []).map((p) => [p.id, p.public_id]));
+  return rows.map((r) => ({
+    id: r.id,
+    publicId: map.get(r.user_id) ?? "RI-*****",
+    prize: Number(r.prize),
+    createdAt: r.created_at,
+  }));
 }
