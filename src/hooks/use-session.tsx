@@ -21,20 +21,51 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    let active = true;
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!active) return;
+      // Mantém a sessão iniciada: renovações de token não devem "deslogar" o utilizador.
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        if (nextSession) setSession(nextSession);
+        setLoading(false);
+        return;
+      }
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        setLoading(false);
+        queryClient.clear();
+        return;
+      }
       setSession(nextSession);
       setLoading(false);
-      queryClient.invalidateQueries();
+      if (nextSession) queryClient.invalidateQueries();
     });
 
     supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
       setSession(data.session);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Ao voltar à aplicação, revalida/renova a sessão guardada em vez de exigir novo login.
+    const revalidate = () => {
+      if (document.visibilityState !== "visible") return;
+      supabase.auth.getSession().then(({ data }) => {
+        if (active && data.session) setSession(data.session);
+      });
+    };
+    document.addEventListener("visibilitychange", revalidate);
+    window.addEventListener("focus", revalidate);
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", revalidate);
+      window.removeEventListener("focus", revalidate);
+    };
   }, [queryClient]);
 
   return (

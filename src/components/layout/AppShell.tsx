@@ -15,6 +15,7 @@ import {
   Megaphone,
   HeartHandshake,
   Loader2,
+  Gamepad2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/use-session";
@@ -31,6 +32,7 @@ const NAV = [
   { to: "/app/dashboard", label: "Início", icon: LayoutDashboard },
   { to: "/app/plans", label: "Planos", icon: Layers },
   { to: "/app/tasks", label: "Tarefas", icon: CheckSquare },
+  { to: "/app/game", label: "Jogo", icon: Gamepad2 },
   { to: "/app/wallet", label: "Carteira", icon: Wallet },
   { to: "/app/team", label: "Equipa", icon: Users },
 ] as const;
