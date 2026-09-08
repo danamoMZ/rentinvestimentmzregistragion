@@ -456,6 +456,33 @@ export type Database = {
         }
         Relationships: []
       }
+      roulette_spins: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          prize: number
+          spin_index: number
+          user_id: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          id?: string
+          prize?: number
+          spin_index: number
+          user_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          prize?: number
+          spin_index?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       share_rewards: {
         Row: {
           amount: number
