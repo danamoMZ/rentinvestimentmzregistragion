@@ -126,7 +126,7 @@ export function WelcomeGuide() {
 
           <Section icon={Wallet} title="Levantamentos">
             <p>
-              Saque a partir de <strong>125 MZN</strong> (máximo 18.000 MZN) com taxa de 3%, diretamente para a
+              Saque a partir de <strong>125 MZN</strong> (máximo 18.000 MZN) com taxa de 10%, diretamente para a
               sua carteira. É necessário ter um plano ativo.
             </p>
           </Section>

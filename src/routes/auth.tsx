@@ -50,6 +50,15 @@ function AuthPage() {
     identifier: "", // for forgot password
   });
 
+  const digits = (v: string) => v.replace(/\D/g, "");
+  const normalizePhone = (v: string) => {
+    let d = digits(v);
+    if (d.startsWith("258")) d = d.slice(3);
+    if (d.startsWith("0")) d = d.slice(1);
+    return d;
+  };
+  const phoneEmail = (v: string) => `258${normalizePhone(v)}@rentinvestiment.mz`;
+
   useEffect(() => {
     if (!loading && session && mode !== "reset-password") {
       navigate({ to: "/app/dashboard", replace: true });
@@ -64,31 +73,34 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "register") {
+        const nome = form.full_name.trim();
+        const tel = normalizePhone(form.phone);
+        if (!nome) throw new Error("Informe o seu nome de utilizador.");
+        if (tel.length !== 9) throw new Error("Informe um número válido de 9 dígitos (ex: 841234567).");
         if (form.password.length < 6) throw new Error("A palavra-passe deve ter pelo menos 6 caracteres.");
-        if (!form.full_name.trim()) throw new Error("Informe o seu nome completo.");
+        const login = phoneEmail(tel);
         const { error } = await supabase.auth.signUp({
-          email: form.email.trim(),
+          email: login,
           password: form.password,
           options: {
-            emailRedirectTo: "https://rentinvestimentmzregistragion.lovable.app/auth/callback",
             data: {
-              full_name: form.full_name.trim(),
-              phone: form.phone.trim(),
-              wallet_number: form.wallet_number.trim() || form.phone.trim(),
+              full_name: nome,
+              phone: `+258${tel}`,
+              wallet_number: tel,
               referral_code: form.referral_code.trim().toUpperCase(),
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          if (/already|registered|exists/i.test(error.message))
+            throw new Error("Este número já está registado. Faça login.");
+          throw error;
+        }
         const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: form.email.trim(),
+          email: login,
           password: form.password,
         });
-        if (signInError) {
-          toast.success("Conta criada! Confirme o seu e-mail para entrar.");
-          navigate({ to: "/auth", search: { mode: "login" } });
-          return;
-        }
+        if (signInError) throw new Error(signInError.message);
         toast.success("Conta criada com sucesso! Bónus de 50 MZN aplicado.");
         navigate({ to: "/app/dashboard", replace: true });
       } else if (mode === "forgot-password") {
@@ -105,15 +117,15 @@ function AuthPage() {
         toast.success("Palavra-passe alterada com sucesso!");
         navigate({ to: "/app/dashboard", replace: true });
       } else {
+        const raw = form.email.trim();
+        if (!raw) throw new Error("Informe o seu número de telefone.");
+        const login = raw.includes("@") ? raw : phoneEmail(raw);
         const { error } = await supabase.auth.signInWithPassword({
-          email: form.email.trim(),
+          email: login,
           password: form.password,
         });
 
-        if (error) {
-        console.error("ERRO REAL DO LOGIN:", error);
-        throw new Error(error.message);
-      }
+        if (error) throw new Error("Número ou palavra-passe incorretos.");
 
         toast.success("Bem-vindo de volta!");
         navigate({ to: "/app/dashboard", replace: true });
@@ -148,17 +160,30 @@ function AuthPage() {
           <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
             {mode === "register" && (
               <>
-                <Field id="full_name" label="Nome completo" value={form.full_name} onChange={set("full_name")} required />
-                <div className="grid grid-cols-2 gap-3">
-                  <Field id="phone" label="Telefone (+258)" value={form.phone} onChange={set("phone")} required placeholder="861585911" />
-                  <Field
-                    id="wallet_number"
-                    label="Número da carteira"
-                    value={form.wallet_number}
-                    onChange={set("wallet_number")}
-                  />
+                <Field
+                  id="full_name"
+                  label="Nome de utilizador"
+                  value={form.full_name}
+                  onChange={set("full_name")}
+                  required
+                  placeholder="ex: Carlitos"
+                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Número de telefone</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-10 shrink-0 items-center rounded-md border border-input bg-secondary px-3 text-sm font-semibold">
+                      +258
+                    </span>
+                    <Input
+                      id="phone"
+                      inputMode="numeric"
+                      value={form.phone}
+                      onChange={set("phone")}
+                      required
+                      placeholder="841234567"
+                    />
+                  </div>
                 </div>
-                <Field id="email" label="E-mail" type="email" value={form.email} onChange={set("email")} required />
                 <Field
                   id="password"
                   label="Palavra-passe"
@@ -178,7 +203,14 @@ function AuthPage() {
 
             {mode === "login" && (
               <>
-                <Field id="email" label="E-mail" type="email" value={form.email} onChange={set("email")} required />
+                <Field
+                  id="email"
+                  label="Número de telefone"
+                  value={form.email}
+                  onChange={set("email")}
+                  required
+                  placeholder="841234567"
+                />
                 <div className="space-y-1">
                   <Field
                     id="password"

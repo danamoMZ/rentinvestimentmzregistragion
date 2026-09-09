@@ -84,40 +84,52 @@ function GamePage() {
     }
   };
 
+  const inviteLink =
+    typeof window !== "undefined" && profile?.referral_code
+      ? `${window.location.origin}/auth?mode=register&ref=${profile.referral_code}`
+      : "";
+
+  const copyInvite = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    toast.success("Link de convite copiado! Partilhe e ganhe comissões.");
+  };
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Roleta da Sorte</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-xl font-bold tracking-tight">Roleta da Sorte</h1>
+        <p className="text-xs text-muted-foreground">
           Cada giro custa {SPIN_COST} MZN. O prémio é creditado automaticamente no seu saldo.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="surface-card bg-[image:var(--gradient-soft)] p-4">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Saldo disponível</p>
-          <p className="text-2xl font-extrabold">{MZN(profile?.balance)}</p>
+      <div className="grid gap-2 grid-cols-2">
+        <div className="surface-card bg-[image:var(--gradient-soft)] px-3 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Saldo disponível</p>
+          <p className="text-lg font-extrabold">{MZN(profile?.balance)}</p>
         </div>
-        <div className="surface-card p-4">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Último prémio</p>
-          <p className="text-2xl font-extrabold text-success">{result ? MZN(result.prize) : "—"}</p>
+        <div className="surface-card px-3 py-2">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Último prémio</p>
+          <p className="text-lg font-extrabold text-success">{result ? MZN(result.prize) : "—"}</p>
           {result && result.multiplier > 1 && (
-            <p className="text-xs font-semibold text-warning">Casa 150 MZN com bónus x{result.multiplier}</p>
+            <p className="text-[10px] font-semibold text-warning">Casa 150 MZN com bónus x{result.multiplier}</p>
           )}
         </div>
       </div>
 
-      <div className="surface-card flex flex-col items-center gap-4 p-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="surface-card flex flex-col items-center gap-3 p-4">
         <div className="relative">
           {/* ponteiro */}
           <div className="absolute left-1/2 top-[-6px] z-20 -translate-x-1/2">
-            <div className="size-0 border-x-[14px] border-t-[26px] border-x-transparent border-t-[color:var(--primary)] drop-shadow" />
+            <div className="size-0 border-x-[12px] border-t-[22px] border-x-transparent border-t-[color:var(--primary)] drop-shadow" />
           </div>
 
           <div className="rounded-full border-4 border-primary/40 bg-card p-2 shadow-[0_0_40px_-8px_var(--primary)]">
             <svg
               viewBox="0 0 320 320"
-              className="size-[300px] max-w-[80vw] transition-transform duration-[5000ms] ease-[cubic-bezier(0.15,0.85,0.2,1)]"
+              className="size-[min(230px,68vw)] transition-transform duration-[5000ms] ease-[cubic-bezier(0.15,0.85,0.2,1)]"
               style={{ transform: `rotate(${rotation}deg)` }}
             >
               {SEGMENTS.map((value, i) => {
@@ -154,7 +166,7 @@ function GamePage() {
             onClick={handleSpin}
             disabled={spinning}
             aria-label="Girar a roleta"
-            className="absolute left-1/2 top-1/2 z-10 flex size-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-primary bg-card text-center font-extrabold uppercase tracking-wide shadow-lg transition active:scale-95 disabled:opacity-70"
+            className="absolute left-1/2 top-1/2 z-10 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-primary bg-card text-center font-extrabold uppercase tracking-wide shadow-lg transition active:scale-95 disabled:opacity-70"
           >
             {spinning ? (
               <Loader2 className="size-6 animate-spin text-primary" />
@@ -168,30 +180,52 @@ function GamePage() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-[11px] text-muted-foreground">
           Clique no centro da roleta para girar. Prémios: 2, 5, 10, 20, 30, 50, 100 e 150 MZN.
         </p>
       </div>
 
-      <div className="surface-card p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Trophy className="size-4 text-warning" />
-          <h2 className="text-sm font-semibold">Ganhadores recentes</h2>
-        </div>
-        <div className="max-h-64 space-y-2 overflow-y-auto">
-          {(feed ?? []).length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">Ainda não há ganhadores. Seja o primeiro!</p>
-          )}
-          {(feed ?? []).map((w) => (
-            <div key={w.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate font-mono text-xs font-semibold">ID {w.publicId}</p>
-                <p className="text-[11px] text-muted-foreground">{formatDateTime(w.createdAt)}</p>
+      <div className="space-y-3">
+        <div className="surface-card p-3">
+          <div className="mb-2 flex items-center gap-2">
+            <Trophy className="size-4 text-warning" />
+            <h2 className="text-sm font-semibold">Ganhadores recentes</h2>
+          </div>
+          <div className="max-h-[210px] space-y-1.5 overflow-y-auto pr-1">
+            {(feed ?? []).length === 0 && (
+              <p className="py-5 text-center text-xs text-muted-foreground">Ainda não há ganhadores. Seja o primeiro!</p>
+            )}
+            {(feed ?? []).map((w) => (
+              <div
+                key={w.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary px-2.5 py-1.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-[11px] font-semibold">ID {w.publicId}</p>
+                  <p className="text-[10px] text-muted-foreground">{formatDateTime(w.createdAt)}</p>
+                </div>
+                <span className="shrink-0 text-xs font-bold text-success">+{MZN(w.prize)}</span>
               </div>
-              <span className="shrink-0 text-sm font-bold text-success">+{MZN(w.prize)}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        <div className="surface-card flex items-center justify-between gap-3 bg-[image:var(--gradient-soft)] p-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Convide e jogue mais</p>
+            <p className="text-[11px] text-muted-foreground">
+              Partilhe o seu link e ganhe comissões para continuar a girar.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={copyInvite}
+            className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition active:scale-95"
+          >
+            Copiar link
+          </button>
+        </div>
+      </div>
       </div>
     </div>
   );
