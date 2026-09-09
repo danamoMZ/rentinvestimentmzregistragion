@@ -160,17 +160,30 @@ function AuthPage() {
           <form onSubmit={handleSubmit} className="mt-5 space-y-3.5">
             {mode === "register" && (
               <>
-                <Field id="full_name" label="Nome completo" value={form.full_name} onChange={set("full_name")} required />
-                <div className="grid grid-cols-2 gap-3">
-                  <Field id="phone" label="Telefone (+258)" value={form.phone} onChange={set("phone")} required placeholder="861585911" />
-                  <Field
-                    id="wallet_number"
-                    label="Número da carteira"
-                    value={form.wallet_number}
-                    onChange={set("wallet_number")}
-                  />
+                <Field
+                  id="full_name"
+                  label="Nome de utilizador"
+                  value={form.full_name}
+                  onChange={set("full_name")}
+                  required
+                  placeholder="ex: Carlitos"
+                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Número de telefone</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-10 shrink-0 items-center rounded-md border border-input bg-secondary px-3 text-sm font-semibold">
+                      +258
+                    </span>
+                    <Input
+                      id="phone"
+                      inputMode="numeric"
+                      value={form.phone}
+                      onChange={set("phone")}
+                      required
+                      placeholder="841234567"
+                    />
+                  </div>
                 </div>
-                <Field id="email" label="E-mail" type="email" value={form.email} onChange={set("email")} required />
                 <Field
                   id="password"
                   label="Palavra-passe"
@@ -190,7 +203,14 @@ function AuthPage() {
 
             {mode === "login" && (
               <>
-                <Field id="email" label="E-mail" type="email" value={form.email} onChange={set("email")} required />
+                <Field
+                  id="email"
+                  label="Número de telefone"
+                  value={form.email}
+                  onChange={set("email")}
+                  required
+                  placeholder="841234567"
+                />
                 <div className="space-y-1">
                   <Field
                     id="password"
