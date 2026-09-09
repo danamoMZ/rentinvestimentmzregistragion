@@ -88,7 +88,7 @@ function WalletPage() {
   });
 
   const value = Number(amount || 0);
-  const fee = Math.round(value * 0.03 * 100) / 100;
+  const fee = Math.round(value * 0.10 * 100) / 100;
 
   const submit = async () => {
     if (!Number.isFinite(value) || value < 125) {
@@ -128,7 +128,7 @@ function WalletPage() {
       <div className="surface-card space-y-3 p-4">
         <h2 className="text-sm font-semibold">Pedir saque</h2>
         <p className="text-xs text-muted-foreground">
-          Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 3% · Requer plano ativo.
+          Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 10% · Requer plano ativo.
         </p>
         <div className="space-y-1.5">
           <Label htmlFor="amount">Valor (MZN)</Label>
@@ -144,7 +144,7 @@ function WalletPage() {
         {value > 0 && (
           <div className="rounded-lg border border-border bg-secondary p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Taxa (3%)</span>
+              <span className="text-muted-foreground">Taxa (10%)</span>
               <span className="font-semibold">{MZN(fee)}</span>
             </div>
             <div className="flex justify-between">
