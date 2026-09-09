@@ -73,31 +73,34 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "register") {
+        const nome = form.full_name.trim();
+        const tel = normalizePhone(form.phone);
+        if (!nome) throw new Error("Informe o seu nome de utilizador.");
+        if (tel.length !== 9) throw new Error("Informe um número válido de 9 dígitos (ex: 841234567).");
         if (form.password.length < 6) throw new Error("A palavra-passe deve ter pelo menos 6 caracteres.");
-        if (!form.full_name.trim()) throw new Error("Informe o seu nome completo.");
+        const login = phoneEmail(tel);
         const { error } = await supabase.auth.signUp({
-          email: form.email.trim(),
+          email: login,
           password: form.password,
           options: {
-            emailRedirectTo: "https://rentinvestimentmzregistragion.lovable.app/auth/callback",
             data: {
-              full_name: form.full_name.trim(),
-              phone: form.phone.trim(),
-              wallet_number: form.wallet_number.trim() || form.phone.trim(),
+              full_name: nome,
+              phone: `+258${tel}`,
+              wallet_number: tel,
               referral_code: form.referral_code.trim().toUpperCase(),
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          if (/already|registered|exists/i.test(error.message))
+            throw new Error("Este número já está registado. Faça login.");
+          throw error;
+        }
         const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: form.email.trim(),
+          email: login,
           password: form.password,
         });
-        if (signInError) {
-          toast.success("Conta criada! Confirme o seu e-mail para entrar.");
-          navigate({ to: "/auth", search: { mode: "login" } });
-          return;
-        }
+        if (signInError) throw new Error(signInError.message);
         toast.success("Conta criada com sucesso! Bónus de 50 MZN aplicado.");
         navigate({ to: "/app/dashboard", replace: true });
       } else if (mode === "forgot-password") {
