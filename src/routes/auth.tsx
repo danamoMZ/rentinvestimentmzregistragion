@@ -117,15 +117,15 @@ function AuthPage() {
         toast.success("Palavra-passe alterada com sucesso!");
         navigate({ to: "/app/dashboard", replace: true });
       } else {
+        const raw = form.email.trim();
+        if (!raw) throw new Error("Informe o seu número de telefone.");
+        const login = raw.includes("@") ? raw : phoneEmail(raw);
         const { error } = await supabase.auth.signInWithPassword({
-          email: form.email.trim(),
+          email: login,
           password: form.password,
         });
 
-        if (error) {
-        console.error("ERRO REAL DO LOGIN:", error);
-        throw new Error(error.message);
-      }
+        if (error) throw new Error("Número ou palavra-passe incorretos.");
 
         toast.success("Bem-vindo de volta!");
         navigate({ to: "/app/dashboard", replace: true });
