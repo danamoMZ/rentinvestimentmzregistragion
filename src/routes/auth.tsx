@@ -50,6 +50,15 @@ function AuthPage() {
     identifier: "", // for forgot password
   });
 
+  const digits = (v: string) => v.replace(/\D/g, "");
+  const normalizePhone = (v: string) => {
+    let d = digits(v);
+    if (d.startsWith("258")) d = d.slice(3);
+    if (d.startsWith("0")) d = d.slice(1);
+    return d;
+  };
+  const phoneEmail = (v: string) => `258${normalizePhone(v)}@rentinvestiment.mz`;
+
   useEffect(() => {
     if (!loading && session && mode !== "reset-password") {
       navigate({ to: "/app/dashboard", replace: true });
