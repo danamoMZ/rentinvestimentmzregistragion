@@ -166,7 +166,7 @@ function GamePage() {
             onClick={handleSpin}
             disabled={spinning}
             aria-label="Girar a roleta"
-            className="absolute left-1/2 top-1/2 z-10 flex size-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-primary bg-card text-center font-extrabold uppercase tracking-wide shadow-lg transition active:scale-95 disabled:opacity-70"
+            className="absolute left-1/2 top-1/2 z-10 flex size-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-primary bg-card text-center font-extrabold uppercase tracking-wide shadow-lg transition active:scale-95 disabled:opacity-70"
           >
             {spinning ? (
               <Loader2 className="size-6 animate-spin text-primary" />
@@ -180,30 +180,52 @@ function GamePage() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-[11px] text-muted-foreground">
           Clique no centro da roleta para girar. Prémios: 2, 5, 10, 20, 30, 50, 100 e 150 MZN.
         </p>
       </div>
 
-      <div className="surface-card p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Trophy className="size-4 text-warning" />
-          <h2 className="text-sm font-semibold">Ganhadores recentes</h2>
-        </div>
-        <div className="max-h-64 space-y-2 overflow-y-auto">
-          {(feed ?? []).length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">Ainda não há ganhadores. Seja o primeiro!</p>
-          )}
-          {(feed ?? []).map((w) => (
-            <div key={w.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate font-mono text-xs font-semibold">ID {w.publicId}</p>
-                <p className="text-[11px] text-muted-foreground">{formatDateTime(w.createdAt)}</p>
+      <div className="space-y-3">
+        <div className="surface-card p-3">
+          <div className="mb-2 flex items-center gap-2">
+            <Trophy className="size-4 text-warning" />
+            <h2 className="text-sm font-semibold">Ganhadores recentes</h2>
+          </div>
+          <div className="max-h-[210px] space-y-1.5 overflow-y-auto pr-1">
+            {(feed ?? []).length === 0 && (
+              <p className="py-5 text-center text-xs text-muted-foreground">Ainda não há ganhadores. Seja o primeiro!</p>
+            )}
+            {(feed ?? []).map((w) => (
+              <div
+                key={w.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary px-2.5 py-1.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-[11px] font-semibold">ID {w.publicId}</p>
+                  <p className="text-[10px] text-muted-foreground">{formatDateTime(w.createdAt)}</p>
+                </div>
+                <span className="shrink-0 text-xs font-bold text-success">+{MZN(w.prize)}</span>
               </div>
-              <span className="shrink-0 text-sm font-bold text-success">+{MZN(w.prize)}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        <div className="surface-card flex items-center justify-between gap-3 bg-[image:var(--gradient-soft)] p-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Convide e jogue mais</p>
+            <p className="text-[11px] text-muted-foreground">
+              Partilhe o seu link e ganhe comissões para continuar a girar.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={copyInvite}
+            className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition active:scale-95"
+          >
+            Copiar link
+          </button>
+        </div>
+      </div>
       </div>
     </div>
   );
