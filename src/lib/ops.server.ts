@@ -790,6 +790,7 @@ export const ROULETTE_SCRIPTED = [
 ]
 
 const ROULETTE_CYCLE_SIZE = 5000
+let rouletteGlobalCounter = 0
 
 function roulettePrizeFor(globalSpinIndex: number): number {
   // Primeiras 7 jogadas de cada ciclo global de 5000
@@ -810,23 +811,10 @@ export async function spinRoulette(userId: string) {
     )
   }
 
-  const { count, error: countError } = await supabaseAdmin
-    .from("roulette_spins")
-    .select("id", {
-      count: "exact",
-      head: true,
-    })
-
-  if (countError) {
-    throw new Error(
-      "Não foi possível contar as jogadas da roleta."
-    )
-  }
-
-  const totalSpins = count ?? 0
+  rouletteGlobalCounter += 1
 
   const globalSpinIndex =
-    (totalSpins % ROULETTE_CYCLE_SIZE) + 1
+    ((rouletteGlobalCounter - 1) % ROULETTE_CYCLE_SIZE) + 1
 
   await ledger(
     userId,
