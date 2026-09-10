@@ -764,57 +764,120 @@ export async function claimShareReward(userClient: SupabaseClient<Database>, use
   return data as { balance: number; amount: number };
 }
 
-/* ------------------------------ Roleta da sorte ---------------------------- */
+/* ---------------------------- Roleta da sorte ---------------------------- */
 
-export const ROULETTE_COST = 5;
-export const ROULETTE_SEGMENTS = [2, 5, 10, 20, 50, 100, 150, 30];
-const ROULETTE_SCRIPTED = [2, 2, 2, 2, 2, 2, 5];
-const ROULETTE_LUCKY = [5, 10, 20, 30, 50];
-// 5 vencedores em cada 5000 giros globais.
-const ROULETTE_LUCKY_RATE = 5 / 5000;
+export const ROULETTE_COST = 5
 
-function roulettePrizeFor(spinIndex: number): number {
-  if (spinIndex <= ROULETTE_SCRIPTED.length) return ROULETTE_SCRIPTED[spinIndex - 1]!;
-  if (Math.random() < ROULETTE_LUCKY_RATE) {
-    return ROULETTE_LUCKY[Math.floor(Math.random() * ROULETTE_LUCKY.length)]!;
+export const ROULETTE_SEGMENTS = [
+  2,
+  5,
+  10,
+  20,
+  30,
+  50,
+  100,
+  150,
+]
+
+export const ROULETTE_SCRIPTED = [
+  2,
+  2,
+  2,
+  2,
+  2,
+  2,
+  5,
+]
+
+const ROULETTE_CYCLE_SIZE = 5000
+
+function roulettePrizeFor(globalSpinIndex: number): number {
+  // Primeiras 7 jogadas de cada ciclo global de 5000
+  if (globalSpinIndex <= ROULETTE_SCRIPTED.length) {
+    return ROULETTE_SCRIPTED[globalSpinIndex - 1]!
   }
-  return 2;
+
+  // Da jogada 8 até à jogada 5000
+  return 2
 }
 
 export async function spinRoulette(userId: string) {
-  const profile = await assertNotBlocked(userId);
+  const profile = await assertNotBlocked(userId)
+
   if (Number(profile.balance) < ROULETTE_COST) {
-    throw new Error(`Saldo insuficiente. Precisa de ${ROULETTE_COST} MZN para girar.`);
+    throw new Error(
+      `Saldo insuficiente. Precisa de ${ROULETTE_COST} MZN para girar.`
+    )
   }
 
-  const { count } = await supabaseAdmin
+  const { count, error: countError } = await supabaseAdmin
     .from("roulette_spins")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  const spinIndex = (count ?? 0) + 1;
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
 
-  await ledger(userId, "GAME_SPIN", -ROULETTE_COST, `SPIN-${userId}-${spinIndex}`, "Roleta da sorte — giro");
-
-  const prize = roulettePrizeFor(spinIndex);
-  // A roleta tem 8 casas; prémios acima de 150 param em 150 com bónus x2.
-  const multiplier = prize > 150 ? 2 : 1;
-  const segmentValue = prize / multiplier;
-  const segmentIndex = Math.max(0, ROULETTE_SEGMENTS.indexOf(segmentValue));
-
-  await supabaseAdmin.from("roulette_spins").insert({
-    user_id: userId,
-    cost: ROULETTE_COST,
-    prize,
-    spin_index: spinIndex,
-  });
-
-  let balance = Number(profile.balance) - ROULETTE_COST;
-  if (prize > 0) {
-    await ledger(userId, "GAME_WIN", prize, `WIN-${userId}-${spinIndex}`, `Roleta da sorte — ganhou ${prize} MZN`);
-    balance += prize;
+  if (countError) {
+    throw new Error(
+      "Não foi possível contar as jogadas da roleta."
+    )
   }
 
-  return { prize, segmentIndex, multiplier, spinIndex, balance };
+  const totalSpins = count ?? 0
+
+  const globalSpinIndex =
+    (totalSpins % ROULETTE_CYCLE_SIZE) + 1
+
+  await ledger(
+    userId,
+    "GAME_SPIN",
+    -ROULETTE_COST,
+    `SPIN-${userId}-${globalSpinIndex}`,
+    "Roleta da sorte - giro"
+  )
+
+  const prize = roulettePrizeFor(globalSpinIndex)
+
+  const multiplier = prize >= 150 ? 2 : 1
+
+  const segmentValue = prize / multiplier
+
+  const segmentIndex = Math.max(
+    0,
+    ROULETTE_SEGMENTS.indexOf(segmentValue)
+  )
+
+  await supabaseAdmin
+    .from("roulette_spins")
+    .insert({
+      user_id: userId,
+      cost: ROULETTE_COST,
+      prize,
+      spin_index: globalSpinIndex,
+    })
+
+  let balance =
+    Number(profile.balance) - ROULETTE_COST
+
+  if (prize > 0) {
+    await ledger(
+      userId,
+      "GAME_WIN",
+      prize,
+      `WIN-${userId}-${globalSpinIndex}`,
+      `Roleta da sorte - ganhou ${prize} MZN`
+    )
+
+    balance += prize
+  }
+
+  return {
+    prize,
+    segmentIndex,
+    multiplier,
+    spinIndex: globalSpinIndex,
+    balance,
+  }
 }
 
 export async function rouletteFeed() {
