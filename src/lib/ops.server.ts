@@ -768,7 +768,7 @@ export async function claimShareReward(userClient: SupabaseClient<Database>, use
 
 export const ROULETTE_COST = 5;
 export const ROULETTE_SEGMENTS = [2, 5, 10, 20, 50, 100, 150, 30];
-const ROULETTE_SCRIPTED = [2, 2, 50, 100, 2, 2, 300];
+const ROULETTE_SCRIPTED = [2, 2, 2, 2, 2, 2, 5];
 const ROULETTE_LUCKY = [5, 10, 20, 30, 50];
 // 5 vencedores em cada 5000 giros globais.
 const ROULETTE_LUCKY_RATE = 5 / 5000;
