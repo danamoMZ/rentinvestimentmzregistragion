@@ -112,14 +112,29 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
 
             {isAdmin && (
-              <Link to="/admin">
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Shield className="size-4" /> <span className="hidden sm:inline">Admin</span>
-                </Button>
-              </Link>
+             <Link to="/admin">
+              <Button variant="outline" size="sm" className="gap-1.5">
+               <Shield className="size-4" />
+               <span className="hidden sm:inline">Admin</span>
+              </Button>
+             </Link>
             )}
-            <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sair">
-              <LogOut className="size-5" />
+
+            <Link
+             to="/app/profile"
+             aria-label="Abrir meu perfil"
+             className="flex size-11 items-center justify-center rounded-full bg-[image:var(--gradient-soft)] shadow-md transition-transform active:scale-95"
+            >
+             <User className="size-6 text-primary-foreground" />
+            </Link>
+
+            <Button
+             variant="ghost"
+             size="icon"
+             onClick={handleSignOut}
+             aria-label="Sair"
+            >
+             <LogOut className="size-5" />
             </Button>
           </div>
         </div>
