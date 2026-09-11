@@ -24,14 +24,14 @@ export const Route = createFileRoute("/app/game")({
 
 const SEGMENTS = [2, 5, 10, 20, 50, 100, 150, 30];
 const SPIN_COST = 5;
-type Win = {
+type NewWin = {
   id: string
   publicId: string
   prize: number
   createdAt: string
 }
 
-const WIM_PRIZES = [
+const NEW_WIM_PRIZES = [
   2,
   2,
   2,
@@ -80,7 +80,7 @@ const WIM_PRIZES = [
   150,
 ]
 
-function createId(): string {
+function createNewId(): string {
   const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789"
 
   let result = "RI-"
@@ -92,13 +92,13 @@ function createId(): string {
   return result
 }
 
-function createDemoWin(): DemoWin {
+function createNewWin(): NewWin {
   const prize =
-    WIM_PRIZES[Math.floor(Math.random() * WIM_PRIZES.length)]
+    NEW_WIM_PRIZES[Math.floor(Math.random() * NEW_WIM_PRIZES.length)]
 
   return {
     id: `ID-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    publicId: createDemoId(),
+    publicId: createNewId(),
     prize,
     createdAt: new Date().toISOString(),
   }
@@ -129,18 +129,18 @@ function GamePage() {
   const [result, setResult] = useState<{ prize: number; multiplier: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [demoWins, setDemoWins] = useState<DemoWin[]>(() => [
-  createWin(),
-  createWin(),
-  createWin(),
-  createWin(),
-  createWin(),
+  const [NewWins, setNewWins] = useState<NewWin[]>(() => [
+  createNewWin(),
+  createNewWin(),
+  createNewWin(),
+  createNewWin(),
+  createNewWin(),
  ])
   useEffect(() => {
   const interval = window.setInterval(() => {
-    const newWin = createWin()
+    const newWin = createNewWin()
 
-    setDemoWins((currentWins) => [
+    setNewWins((currentWins) => [
       newWin,
       ...currentWins,
     ].slice(0, 30))
