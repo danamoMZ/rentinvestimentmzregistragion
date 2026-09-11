@@ -24,6 +24,85 @@ export const Route = createFileRoute("/app/game")({
 
 const SEGMENTS = [2, 5, 10, 20, 50, 100, 150, 30];
 const SPIN_COST = 5;
+type Win = {
+  id: string
+  publicId: string
+  prize: number
+  createdAt: string
+}
+
+const WIM_PRIZES = [
+  2,
+  2,
+  2,
+  2,
+  5,
+  2,
+  10,
+  2,
+  30,
+  2,
+  5,
+  2,
+  50,
+  2,
+  2,
+  20,
+  2,
+  30,
+  5,
+  2,
+  100,
+  2,
+  2,
+  10,
+  150,
+  2,
+  5,
+  30,
+  2,
+  5,
+  10,
+  100,
+  50,
+  2,
+  2,
+  2,
+  2,
+  2,
+  2,
+  5,
+  150,
+  5,
+  150,
+  10,
+  100,
+  150,
+]
+
+function createId(): string {
+  const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789"
+
+  let result = "RI-"
+
+  for (let i = 0; i < 6; i += 1) {
+    result += characters[Math.floor(Math.random() * characters.length)]
+  }
+
+  return result
+}
+
+function createDemoWin(): DemoWin {
+  const prize =
+    WIM_PRIZES[Math.floor(Math.random() * WIM_PRIZES.length)]
+
+  return {
+    id: `ID-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    publicId: createDemoId(),
+    prize,
+    createdAt: new Date().toISOString(),
+  }
+}
 const SEG_ANGLE = 360 / SEGMENTS.length;
 
 function polar(cx: number, cy: number, r: number, deg: number) {
@@ -49,6 +128,28 @@ function GamePage() {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<{ prize: number; multiplier: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [demoWins, setDemoWins] = useState<DemoWin[]>(() => [
+  createWin(),
+  createWin(),
+  createWin(),
+  createWin(),
+  createWin(),
+ ])
+  useEffect(() => {
+  const interval = window.setInterval(() => {
+    const newWin = createWin()
+
+    setDemoWins((currentWins) => [
+      newWin,
+      ...currentWins,
+    ].slice(0, 30))
+  }, 4000)
+
+  return () => {
+    window.clearInterval(interval)
+  }
+ }, [])
 
   const { data: feed } = useQuery({
     queryKey: ["roulette-feed"],
