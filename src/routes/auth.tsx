@@ -816,15 +816,26 @@ function PhoneField({
               : "tel-national"
           }
           value={value}
-          onChange={(event) =>
-            onChange(
-              allowEmail
-                ? event.target.value
-                : normalizePhone(
-                    event.target.value,
-                  ),
-            )
+          onChange={(event) => {
+          if (allowEmail) {
+            onChange(event.target.value);
+            return;
           }
+
+          let value = event.target.value.replace(/\D/g, "");
+
+          if (value.startsWith("258")) {
+           value = value.slice(3);
+          }
+
+          if (value.startsWith("0")) {
+           value = value.slice(1);
+          }
+
+          value = value.slice(0, 9);
+
+          onChange(value);
+        }}
           required
           maxLength={
             allowEmail
