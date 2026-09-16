@@ -71,7 +71,9 @@ function AuthPage() {
     requestPasswordResetFn,
   );
 
-  const resetPass = useServerFn(resetPasswordFn);
+  const resetPass = useServerFn(
+    resetPasswordFn,
+  );
 
   const [form, setForm] = useState({
     full_name: "",
@@ -206,12 +208,6 @@ function AuthPage() {
           throw error;
         }
 
-        /*
-         * Mantém o comportamento atual:
-         * depois de criar a conta tenta
-         * iniciar sessão automaticamente.
-         */
-
         const {
           error: signInError,
         } =
@@ -319,6 +315,20 @@ function AuthPage() {
        * ============================
        * LOGIN
        * ============================
+       *
+       * Aceita:
+       *
+       * 1. Número moçambicano
+       *    821234567
+       *
+       * 2. Número com +258
+       *    +258 821234567
+       *
+       * 3. E-mail de usuário antigo
+       *    usuario@gmail.com
+       *
+       * O e-mail antigo é enviado
+       * diretamente para o Supabase.
        */
 
       const raw =
@@ -326,7 +336,7 @@ function AuthPage() {
 
       if (!raw) {
         throw new Error(
-          "Informe o seu número de telefone.",
+          "Informe o seu número de telefone ou e-mail.",
         );
       }
 
@@ -344,7 +354,7 @@ function AuthPage() {
 
       if (error) {
         throw new Error(
-          "Número ou palavra-passe incorretos.",
+          "Número, e-mail ou palavra-passe incorretos.",
         );
       }
 
@@ -367,17 +377,12 @@ function AuthPage() {
     }
   };
 
-  /*
-   * ==================================
-   * INTERFACE
-   * ==================================
-   */
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-[image:var(--gradient-soft)] px-4 py-10">
       <div className="w-full max-w-md">
 
         {/* LOGO */}
+
         <Link
           to="/"
           className="mb-6 flex justify-center"
@@ -388,7 +393,7 @@ function AuthPage() {
         <div className="surface-card p-6">
 
           {/* ==========================
-              BOTÕES ENTRAR / REGISTAR
+              ENTRAR / REGISTAR
               ========================== */}
 
           <div className="mb-6 grid grid-cols-2 gap-2">
@@ -425,7 +430,9 @@ function AuthPage() {
 
           </div>
 
-          {/* TÍTULO */}
+          {/* ==========================
+              TÍTULO
+              ========================== */}
 
           <h1 className="text-xl font-bold tracking-tight">
             {mode === "register"
@@ -461,7 +468,7 @@ function AuthPage() {
           >
 
             {/* ==========================
-                REGISTO
+                REGISTAR
                 ========================== */}
 
             {mode === "register" && (
@@ -482,7 +489,7 @@ function AuthPage() {
                   placeholder="ex: Carlitos"
                 />
 
-                {/* TELEFONE */}
+                {/* NÚMERO DE TELEFONE */}
 
                 <PhoneField
                   value={form.phone}
@@ -490,9 +497,10 @@ function AuthPage() {
                     setForm(
                       (prev) => ({
                         ...prev,
-                        phone: normalizePhone(
-                          value,
-                        ),
+                        phone:
+                          normalizePhone(
+                            value,
+                          ),
                       }),
                     )
                   }
@@ -539,14 +547,12 @@ function AuthPage() {
               <>
                 <PhoneField
                   value={form.email}
+                  allowEmail
                   onChange={(value) =>
                     setForm(
                       (prev) => ({
                         ...prev,
-                        email:
-                          normalizePhone(
-                            value,
-                          ),
+                        email: value,
                       }),
                     )
                   }
@@ -587,7 +593,7 @@ function AuthPage() {
             )}
 
             {/* ==========================
-                RECUPERAÇÃO
+                RECUPERAR CONTA
                 ========================== */}
 
             {mode ===
@@ -607,11 +613,13 @@ function AuthPage() {
                 />
 
                 <div className="flex items-center gap-2 rounded-lg bg-primary/5 p-3 text-xs text-primary/80">
+
                   <KeyRound className="size-4 shrink-0" />
 
                   <span>
                     Enviaremos um código oficial da equipa RENT INVESTIMENT.
                   </span>
+
                 </div>
               </>
             )}
@@ -654,7 +662,7 @@ function AuthPage() {
             )}
 
             {/* ==========================
-                BOTÃO PRINCIPAL
+                BOTÃO
                 ========================== */}
 
             <Button
@@ -680,7 +688,7 @@ function AuthPage() {
           </form>
 
           {/* ==========================
-              LINKS INFERIORES
+              LINKS
               ========================== */}
 
           <div className="mt-5 flex flex-col items-center gap-3 text-sm text-muted-foreground">
@@ -739,25 +747,37 @@ function AuthPage() {
  * ==================================
  * CAMPO DE TELEFONE
  * ==================================
+ *
+ * No REGISTO:
+ * somente número de telefone.
+ *
+ * No LOGIN:
+ * aceita telefone OU e-mail antigo.
  */
 
 function PhoneField({
   value,
   onChange,
+  allowEmail = false,
 }: {
   value: string;
   onChange: (value: string) => void;
+  allowEmail?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
 
       <Label htmlFor="phone">
-        Número de telefone
+        {allowEmail
+          ? "Número de telefone ou e-mail"
+          : "Número de telefone"}
       </Label>
 
       <div className="flex h-14 overflow-hidden rounded-2xl border border-input bg-background">
 
-        {/* BANDEIRA +258 */}
+        {/* ==========================
+            BANDEIRA DE MOÇAMBIQUE
+            ========================== */}
 
         <div className="flex shrink-0 items-center gap-2 border-r border-input px-4 text-sm font-semibold">
 
@@ -774,29 +794,57 @@ function PhoneField({
 
         </div>
 
-        {/* NÚMERO */}
+        {/* ==========================
+            CAMPO
+            ========================== */}
 
         <Input
           id="phone"
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel-national"
+          type={
+            allowEmail
+              ? "text"
+              : "tel"
+          }
+          inputMode={
+            allowEmail
+              ? "text"
+              : "numeric"
+          }
+          autoComplete={
+            allowEmail
+              ? "username"
+              : "tel-national"
+          }
           value={value}
           onChange={(event) =>
             onChange(
-              event.target.value,
+              allowEmail
+                ? event.target.value
+                : normalizePhone(
+                    event.target.value,
+                  ),
             )
           }
           required
-          maxLength={9}
-          placeholder="821234567"
+          maxLength={
+            allowEmail
+              ? undefined
+              : 9
+          }
+          placeholder={
+            allowEmail
+              ? "821234567 ou seu@email.com"
+              : "821234567"
+          }
           className="h-full rounded-none border-0 bg-transparent px-4 text-base shadow-none focus-visible:ring-0"
         />
 
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Introduza os 9 dígitos do seu número.
+        {allowEmail
+          ? "Use o seu número de telefone ou o e-mail da conta antiga."
+          : "Introduza os 9 dígitos do seu número."}
       </p>
 
     </div>
@@ -827,7 +875,9 @@ function Field({
       <Input
         id={id}
         {...props}
-        className={`h-14 rounded-2xl px-4 text-base ${props.className ?? ""}`}
+        className={`h-14 rounded-2xl px-4 text-base ${
+          props.className ?? ""
+        }`}
       />
 
     </div>
