@@ -40,7 +40,7 @@ function Team() {
   const earned = (referrals ?? []).reduce((sum, r) => sum + Number(r.reward_amount ?? 0), 0);
   const link =
     typeof window !== "undefined" && profile
-      ? `https://rentinvestimentmzregistragion.lovable.app/auth?mode=register&ref=${profile.referral_code}`
+      ? `https://rent-rentinvestimentmz-auth-register-vip-moz.lovable.app/auth?mode=register&ref=${profile.referral_code}`
       : "";
 
   const copy = async (text: string, label: string) => {
