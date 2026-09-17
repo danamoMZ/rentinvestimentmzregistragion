@@ -17,6 +17,7 @@ import {
   Loader2,
   Gamepad2,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useProfile, useSession } from "@/hooks/use-session";
 import { useDeviceNotifications } from "@/hooks/use-device-notifications";
@@ -29,20 +30,64 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
-  { to: "/app/dashboard", label: "Início", icon: LayoutDashboard },
-  { to: "/app/plans", label: "Planos", icon: Layers },
-  { to: "/app/tasks", label: "Tarefas", icon: CheckSquare },
-  { to: "/app/game", label: "Jogo", icon: Gamepad2 },
-  { to: "/app/wallet", label: "Carteira", icon: Wallet },
-  { to: "/app/team", label: "Equipa", icon: Users },
+  {
+    to: "/app/dashboard",
+    label: "Início",
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/app/plans",
+    label: "Planos",
+    icon: Layers,
+  },
+  {
+    to: "/app/tasks",
+    label: "Tarefas",
+    icon: CheckSquare,
+  },
+  {
+    to: "/app/game",
+    label: "Jogo",
+    icon: Gamepad2,
+  },
+  {
+    to: "/app/wallet",
+    label: "Carteira",
+    icon: Wallet,
+  },
+  {
+    to: "/app/team",
+    label: "Equipa",
+    icon: Users,
+  },
 ] as const;
 
 const MORE = [
-  { to: "/app/affiliate", label: "Afiliados", icon: Megaphone },
-  { to: "/app/donations", label: "Doações", icon: HeartHandshake },
-  { to: "/app/support", label: "Suporte", icon: LifeBuoy },
-  { to: "/app/notifications", label: "Notificações", icon: Bell },
-  { to: "/app/profile", label: "Perfil", icon: User },
+  {
+    to: "/app/affiliate",
+    label: "Afiliados",
+    icon: Megaphone,
+  },
+  {
+    to: "/app/donations",
+    label: "Doações",
+    icon: HeartHandshake,
+  },
+  {
+    to: "/app/support",
+    label: "Suporte",
+    icon: LifeBuoy,
+  },
+  {
+    to: "/app/notifications",
+    label: "Notificações",
+    icon: Bell,
+  },
+  {
+    to: "/app/profile",
+    label: "Perfil",
+    icon: User,
+  },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -50,11 +95,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const { data: isAdmin } = useIsAdmin();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const pathname = useRouterState({
+    select: (s) => s.location.pathname,
+  });
+
   useDeviceNotifications();
 
   useEffect(() => {
-    if (!loading && !session) navigate({ to: "/auth", replace: true });
+    if (!loading && !session) {
+      navigate({
+        to: "/auth",
+        replace: true,
+      });
+    }
   }, [loading, session, navigate]);
 
   const { data: unread } = useQuery({
@@ -64,9 +118,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     queryFn: async () => {
       const { count } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
         .eq("read", false)
         .or(`user_id.eq.${userId},user_id.is.null`);
+
       return count ?? 0;
     },
   });
@@ -81,29 +139,66 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+
+    navigate({
+      to: "/auth",
+      replace: true,
+    });
   };
 
   const allLinks = [...NAV, ...MORE];
 
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-card/85 backdrop-blur">
+
+      {/* =====================================================
+          CABEÇALHO SUPERIOR
+          ===================================================== */}
+
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-          <Link to="/app/dashboard" className="shrink-0">
+
+          {/* LOGO */}
+          <Link
+            to="/app/dashboard"
+            className="shrink-0"
+            aria-label="Ir para o início"
+          >
             <Logo size={36} />
           </Link>
+
+          {/* AÇÕES DO CABEÇALHO */}
           <div className="flex items-center gap-2">
+
+            {/* SALDO */}
             <div className="hidden rounded-lg border border-border bg-secondary px-3 py-1.5 text-right sm:block">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo</p>
-              <p className="text-sm font-bold text-foreground">{MZN(profile?.balance)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Saldo
+              </p>
+
+              <p className="text-sm font-bold text-foreground">
+                {MZN(profile?.balance)}
+              </p>
             </div>
+
+            {/* SUPORTE */}
             <SupportMenu />
 
-            <Link to="/app/notifications" className="relative">
-              <Button variant="ghost" size="icon" aria-label="Notificações">
+            {/* NOTIFICAÇÕES */}
+            <Link
+              to="/app/notifications"
+              className="relative shrink-0"
+              aria-label="Abrir notificações"
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Notificações"
+              >
                 <Bell className="size-5" />
               </Button>
+
               {!!unread && (
                 <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                   {unread > 9 ? "9+" : unread}
@@ -111,82 +206,225 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             </Link>
 
+            {/* ADMIN */}
             {isAdmin && (
-             <Link to="/admin">
-              <Button variant="outline" size="sm" className="gap-1.5">
-               <Shield className="size-4" />
-               <span className="hidden sm:inline">Admin</span>
-              </Button>
-             </Link>
+              <Link to="/admin">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 rounded-full"
+                >
+                  <Shield className="size-4" />
+
+                  <span className="hidden sm:inline">
+                    Admin
+                  </span>
+                </Button>
+              </Link>
             )}
 
+            {/* PERFIL */}
             <Link
-             to="/app/profile"
-             aria-label="Abrir meu perfil"
-             className="flex size-11 items-center justify-center rounded-full bg-[image:var(--gradient-soft)] shadow-md transition-transform active:scale-95"
+              to="/app/profile"
+              aria-label="Abrir meu perfil"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-soft)] shadow-md transition-transform hover:shadow-lg active:scale-95"
             >
-             <User className="size-6 text-primary-foreground" />
+              <User className="size-6 text-primary-foreground" />
             </Link>
 
+            {/* SAIR */}
             <Button
-             variant="ghost"
-             size="icon"
-             onClick={handleSignOut}
-             aria-label="Sair"
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              aria-label="Sair"
+              className="rounded-full"
             >
-             <LogOut className="size-5" />
+              <LogOut className="size-5" />
             </Button>
+
           </div>
         </div>
       </header>
 
+      {/* =====================================================
+          CONTEÚDO PRINCIPAL
+          ===================================================== */}
+
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6">
+
+        {/* MENU DESKTOP */}
         <aside className="hidden w-56 shrink-0 lg:block">
           <nav className="sticky top-24 space-y-1">
+
             {allLinks.map((item) => {
               const active = pathname.startsWith(item.to);
+
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                     active
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
-                  <item.icon className="size-4" />
-                  {item.label}
+                  <item.icon className="size-4 shrink-0" />
+
+                  <span>
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}
+
           </nav>
         </aside>
-        <main className="min-w-0 flex-1">{children}</main>
+
+        {/* PÁGINA */}
+        <main className="min-w-0 flex-1">
+          {children}
+        </main>
+
         <WelcomeGuide />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-5">
+      {/* =====================================================
+          MENU INFERIOR MOBILE
+          ===================================================== */}
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-card/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden"
+        aria-label="Navegação principal"
+      >
+
+        {/*
+
+          IMPORTANTE:
+
+          São 6 opções:
+          1. Início
+          2. Planos
+          3. Tarefas
+          4. Jogo
+          5. Carteira
+          6. Equipa
+
+          Por isso usamos grid-cols-6.
+
+        */}
+
+        <div className="mx-auto grid w-full max-w-lg grid-cols-6 px-1 pb-[env(safe-area-inset-bottom)]">
+
           {NAV.map((item) => {
             const active = pathname.startsWith(item.to);
+            const isTasks = item.to === "/app/tasks";
+
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground",
+                  "group relative flex min-w-0 flex-col items-center justify-center text-center transition-all duration-200",
+                  isTasks ? "py-1" : "py-2.5",
+                  active && !isTasks
+                    ? "text-primary"
+                    : !isTasks
+                      ? "text-muted-foreground"
+                      : "",
                 )}
               >
-                <item.icon className={cn("size-5", active && "scale-110")} />
-                {item.label}
+
+                {/* =================================================
+                    TAREFAS — BOTÃO REDONDO
+                    ================================================= */}
+
+                {isTasks ? (
+
+                  <span
+                    className={cn(
+                      "relative -mt-7 flex size-[68px] flex-col items-center justify-center rounded-full border-[5px] border-card bg-primary text-primary-foreground shadow-[0_7px_22px_rgba(14,165,233,0.45)] transition-all duration-200",
+
+                      active
+                        ? "scale-105 shadow-[0_9px_26px_rgba(14,165,233,0.60)]"
+                        : "group-hover:scale-105",
+                    )}
+                  >
+
+                    {/* ÍCONE */}
+                    <item.icon
+                      className="size-5"
+                      strokeWidth={2.5}
+                    />
+
+                    {/* TEXTO DENTRO DO CÍRCULO */}
+                    <span className="mt-0.5 whitespace-nowrap text-[9px] font-extrabold leading-none">
+                      {item.label}
+                    </span>
+
+                    {/* EFEITO QUANDO ESTÁ ATIVO */}
+                    {active && (
+                      <span className="absolute inset-0 rounded-full ring-2 ring-primary/30" />
+                    )}
+
+                  </span>
+
+                ) : (
+
+                  /* =================================================
+                     OUTROS BOTÕES
+                     ================================================= */
+
+                  <>
+                    {/* ÍCONE */}
+                    <span
+                      className={cn(
+                        "flex size-7 items-center justify-center rounded-xl transition-all duration-200",
+
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground group-hover:bg-secondary group-hover:text-foreground",
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          "size-5",
+                          active && "scale-110",
+                        )}
+                        strokeWidth={active ? 2.5 : 2}
+                      />
+                    </span>
+
+                    {/* TEXTO */}
+                    <span
+                      className={cn(
+                        "mt-1 w-full truncate px-0.5 text-[10px] font-semibold leading-none",
+
+                        active
+                          ? "text-primary"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {item.label}
+                    </span>
+
+                    {/* INDICADOR ATIVO */}
+                    {active && (
+                      <span className="absolute bottom-0.5 h-0.5 w-5 rounded-full bg-primary" />
+                    )}
+                  </>
+                )}
+
               </Link>
             );
           })}
+
         </div>
       </nav>
+
     </div>
   );
 }
