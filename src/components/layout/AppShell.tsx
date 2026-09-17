@@ -93,7 +93,6 @@ const MORE = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, loading, userId } = useSession();
   const navigate = useNavigate();
-
   const { data: profile } = useProfile();
   const { data: isAdmin } = useIsAdmin();
 
@@ -150,13 +149,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const allLinks = [...NAV, ...MORE];
 
   return (
-    <div className="min-h-screen bg-background pb-28 lg:pb-0">
-      {/* =====================================================
+    <div className="min-h-screen bg-background pb-24 lg:pb-0">
+
+      {/* =========================
           CABEÇALHO SUPERIOR
-          ===================================================== */}
+          ========================= */}
       <header className="sticky top-0 z-40 border-b border-border/70 bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-          {/* Logo */}
+
+          {/* LOGO */}
           <Link
             to="/app/dashboard"
             className="shrink-0"
@@ -165,8 +166,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Logo size={36} />
           </Link>
 
+          {/* AÇÕES DO CABEÇALHO */}
           <div className="flex items-center gap-2">
-            {/* Saldo */}
+
+            {/* SALDO */}
             <div className="hidden rounded-lg border border-border bg-secondary px-3 py-1.5 text-right sm:block">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 Saldo
@@ -177,18 +180,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               </p>
             </div>
 
-            {/* Suporte */}
+            {/* SUPORTE */}
             <SupportMenu />
 
-            {/* Notificações */}
+            {/* NOTIFICAÇÕES */}
             <Link
               to="/app/notifications"
-              className="relative"
+              className="relative shrink-0"
               aria-label="Abrir notificações"
             >
               <Button
                 variant="ghost"
                 size="icon"
+                className="rounded-full"
                 aria-label="Notificações"
               >
                 <Bell className="size-5" />
@@ -201,13 +205,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             </Link>
 
-            {/* Administração */}
+            {/* ADMIN */}
             {isAdmin && (
               <Link to="/admin">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1.5"
+                  className="gap-1.5 rounded-full"
                 >
                   <Shield className="size-4" />
 
@@ -218,21 +222,22 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             )}
 
-            {/* Perfil */}
+            {/* PERFIL */}
             <Link
               to="/app/profile"
               aria-label="Abrir meu perfil"
-              className="flex size-11 items-center justify-center rounded-full bg-[image:var(--gradient-soft)] shadow-md transition-transform active:scale-95"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-soft)] shadow-md transition-transform hover:shadow-lg active:scale-95"
             >
               <User className="size-6 text-primary-foreground" />
             </Link>
 
-            {/* Sair */}
+            {/* SAIR */}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleSignOut}
               aria-label="Sair"
+              className="rounded-full"
             >
               <LogOut className="size-5" />
             </Button>
@@ -240,13 +245,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {/* =====================================================
-          CONTEÚDO DA PLATAFORMA
-          ===================================================== */}
+      {/* =========================
+          CONTEÚDO PRINCIPAL
+          ========================= */}
       <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6">
-        {/* Menu lateral para computador */}
+
+        {/* MENU DESKTOP */}
         <aside className="hidden w-56 shrink-0 lg:block">
           <nav className="sticky top-24 space-y-1">
+
             {allLinks.map((item) => {
               const active = pathname.startsWith(item.to);
 
@@ -255,21 +262,23 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                     active
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
-                  <item.icon className="size-4" />
-                  {item.label}
+                  <item.icon className="size-4 shrink-0" />
+
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
+
           </nav>
         </aside>
 
-        {/* Página atual */}
+        {/* PÁGINA */}
         <main className="min-w-0 flex-1">
           {children}
         </main>
@@ -277,136 +286,67 @@ export function AppShell({ children }: { children: ReactNode }) {
         <WelcomeGuide />
       </div>
 
-      {/* =====================================================
-          NAVEGAÇÃO MOBILE
-          
-          6 BOTÕES SEM QUEBRAR PARA OUTRA LINHA:
-
-          INÍCIO | PLANOS | TAREFAS | JOGO | CARTEIRA | EQUIPA
-          ===================================================== */}
+      {/* =========================
+          MENU INFERIOR MOBILE
+          ========================= */}
       <nav
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-card/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden"
         aria-label="Navegação principal"
       >
-        <div className="mx-auto flex h-[78px] w-full max-w-lg items-center px-0.5">
+        <div className="mx-auto grid w-full max-w-lg grid-cols-6 px-1 pb-[env(safe-area-inset-bottom)]">
+
           {NAV.map((item) => {
             const active = pathname.startsWith(item.to);
-            const isTasks = item.to === "/app/tasks";
-            const isGame = item.to === "/app/game";
 
-            {/* =================================================
-                TAREFAS
-                Botão circular grande azul.
-                O nome Tarefas fica DENTRO do círculo.
-                ================================================= */}
-            if (isTasks) {
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  aria-label="Tarefas"
-                  className="relative flex h-full min-w-0 flex-1 items-center justify-center"
-                >
-                  <span
-                    className={cn(
-                      "absolute -top-4 flex aspect-square w-[clamp(60px,17vw,70px)] flex-col items-center justify-center rounded-full border-[5px] border-card bg-sky-500 text-white shadow-[0_8px_25px_rgba(14,165,233,0.40)] transition-all duration-200",
-                      active &&
-                        "bg-sky-600 shadow-[0_10px_32px_rgba(14,165,233,0.60)]",
-                    )}
-                  >
-                    <CheckSquare
-                      className={cn(
-                        "size-6",
-                        active && "scale-110",
-                      )}
-                    />
-
-                    <span className="mt-1 text-[10px] font-extrabold leading-none">
-                      Tarefas
-                    </span>
-                  </span>
-                </Link>
-              );
-            }
-
-            {/* =================================================
-                JOGO
-                Azul-ciano para combinar com a plataforma.
-                ================================================= */}
-            if (isGame) {
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  aria-label="Jogo"
-                  className={cn(
-                    "flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 text-[10px] font-semibold transition-all duration-200",
-                    active
-                      ? "text-cyan-600"
-                      : "text-cyan-500",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-xl transition-all duration-200",
-                      active
-                        ? "bg-cyan-100 shadow-sm"
-                        : "bg-transparent",
-                    )}
-                  >
-                    <Gamepad2
-                      className={cn(
-                        "size-5",
-                        active && "scale-110",
-                      )}
-                    />
-                  </span>
-
-                  <span className="truncate">
-                    Jogo
-                  </span>
-                </Link>
-              );
-            }
-
-            {/* =================================================
-                OUTROS BOTÕES
-                Início, Planos, Carteira e Equipa.
-                ================================================= */}
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                aria-label={item.label}
-                className={cn(
-                  "flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 text-[10px] font-semibold transition-all duration-200",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground",
-                )}
+                aria-current={active ? "page" : undefined}
+                className="group relative flex min-w-0 flex-col items-center justify-center py-2.5 text-center"
               >
-                <span
-                  className={cn(
-                    "flex size-8 items-center justify-center rounded-xl transition-all duration-200",
-                    active
-                      ? "bg-primary/10 shadow-sm"
-                      : "bg-transparent",
-                  )}
-                >
-                  <item.icon
-                    className={cn(
-                      "size-5",
-                      active && "scale-110",
-                    )}
-                  />
-                </span>
 
-                <span className="truncate">
-                  {item.label}
-                </span>
+                {/* =========================
+                    BOTÃO ATIVO — CIRCULAR
+                    ========================= */}
+                {active ? (
+                  <>
+                    <span
+                      className="flex size-[50px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_5px_18px_rgba(14,165,233,0.40)] transition-all duration-200 group-hover:scale-105 group-active:scale-95"
+                    >
+                      <item.icon
+                        className="size-6"
+                        strokeWidth={2.5}
+                      />
+                    </span>
+
+                    <span className="mt-1 text-[10px] font-bold leading-none text-primary">
+                      {item.label}
+                    </span>
+                  </>
+                ) : (
+
+                  /* =========================
+                     BOTÃO NORMAL — SIMPLES
+                     ========================= */
+                  <>
+                    <span className="flex size-[50px] items-center justify-center rounded-full text-muted-foreground transition-all duration-200 group-hover:bg-secondary group-hover:text-foreground group-active:scale-95">
+                      <item.icon
+                        className="size-5"
+                        strokeWidth={2}
+                      />
+                    </span>
+
+                    <span className="mt-1 w-full truncate px-0.5 text-[10px] font-semibold leading-none text-muted-foreground">
+                      {item.label}
+                    </span>
+                  </>
+                )}
+
               </Link>
             );
           })}
+
         </div>
       </nav>
     </div>
