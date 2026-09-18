@@ -769,6 +769,84 @@ export async function resetPassword(password: string) {
   return { ok: true };
 }
 
+export async function adminChangeUserPassword(
+  adminId: string,
+  userId: string,
+  newPassword: string,
+) {
+  await assertAdmin(adminId);
+
+  const cleanUserId = userId.trim();
+  const password = newPassword.trim();
+
+  if (!cleanUserId) {
+    throw new Error("Utilizador inválido.");
+  }
+
+  if (!password) {
+    throw new Error("Informe a nova palavra-passe.");
+  }
+
+  if (password.length < 8) {
+    throw new Error("A palavra-passe deve ter pelo menos 8 caracteres.");
+  }
+
+  if (password.length > 72) {
+    throw new Error("A palavra-passe é demasiado longa.");
+  }
+
+  // Confirmamos que o utilizador existe no perfil da plataforma.
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, email, phone, public_id")
+    .eq("id", cleanUserId)
+    .maybeSingle();
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  if (!profile) {
+    throw new Error("Utilizador não encontrado.");
+  }
+
+  // A alteração da palavra-passe é feita exclusivamente no servidor.
+  const { error: authError } =
+    await supabaseAdmin.auth.admin.updateUserById(cleanUserId, {
+      password,
+    });
+
+  if (authError) {
+    throw new Error(
+      authError.message || "Não foi possível alterar a palavra-passe.",
+    );
+  }
+
+  // Registamos a alteração no histórico administrativo.
+  await logAdmin(
+    adminId,
+    "ADMIN_CHANGE_PASSWORD",
+    cleanUserId,
+    null,
+    "Palavra-passe alterada pelo administrador.",
+    "OK",
+  );
+
+  // Notificação para o utilizador.
+  await notify(
+    cleanUserId,
+    "🔐 Palavra-passe alterada",
+    "A sua palavra-passe foi alterada pelo administrador. Se não solicitou esta alteração, contacte o suporte.",
+  );
+
+  return {
+    ok: true as const,
+    userId: cleanUserId,
+    name: profile.full_name,
+    publicId: profile.public_id,
+  };
+}
+
 /* ------------------------------ Planos (admin) ----------------------------- */
 
 export async function updatePlan(
