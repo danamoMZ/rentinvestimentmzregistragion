@@ -6,7 +6,7 @@ import { Copy, Loader2, Upload, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import { depositFn } from "@/lib/app.functions";
+import { depositFn, purchasePlanFn } from "@/lib/app.functions";
 import { MZN, PAYMENT_FIELDS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
