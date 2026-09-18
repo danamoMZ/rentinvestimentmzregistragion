@@ -143,33 +143,38 @@ export async function purchasePlan(userId: string, planId: number) {
   }
 
   /*
-   * Primeiro debitamos através do apply_ledger.
-   *
-   * apply_ledger usa SELECT ... FOR UPDATE, portanto o saldo
-   * é verificado e alterado de forma protegida contra concorrência.
+   * O débito é feito no servidor através do apply_ledger.
+   * Não confiamos apenas na verificação de saldo feita pela interface.
    */
-  const newBalance = await ledger(
+  const purchaseReference = `PLAN-${plan.id}-${userId}-${Date.now()}`;
+
+  await ledger(
     userId,
     "PLAN_PURCHASE",
     -price,
-    `PLAN-${plan.id}-${Date.now()}`,
+    purchaseReference,
     `Compra do plano ${plan.name} — -${price} MZN`,
   );
 
   try {
     const start = todayMaputo();
 
+    const durationDays = Number(plan.duration_days);
+
+    if (!Number.isFinite(durationDays) || durationDays <= 0) {
+      throw new Error("A duração deste plano é inválida.");
+    }
+
     const end = new Date(
       new Date(`${start}T00:00:00Z`).getTime() +
-        Number(plan.duration_days) * 86400000,
+        durationDays * 86400000,
     )
       .toISOString()
       .slice(0, 10);
 
     /*
-     * Mantém o mesmo comportamento usado actualmente
-     * na aprovação de depósitos:
-     * o novo plano fica activo e o anterior é substituído.
+     * Activamos primeiro o novo plano.
+     * O plano anterior será marcado como REPLACED depois.
      */
     const { data: newPlan, error: insertError } = await supabaseAdmin
       .from("user_plans")
@@ -183,22 +188,16 @@ export async function purchasePlan(userId: string, planId: number) {
       .select("id")
       .single();
 
-    const { data: newPlan, error: insertError } = await supabaseAdmin
-      .from("user_plans")
-      .insert({
-        user_id: userId,
-        plan_id: plan.id,
-        start_date: start,
-        end_date: end,
-        status: "ACTIVE",
-      })
-      .select("id")
-      .single();
-
     if (insertError || !newPlan) {
-      throw new Error(insertError?.message ?? "Não foi possível activar o plano.");
+      throw new Error(
+        insertError?.message ?? "Não foi possível activar o plano.",
+      );
     }
 
+    /*
+     * Se o utilizador já tinha outro plano activo,
+     * ele passa para REPLACED.
+     */
     const { error: replaceError } = await supabaseAdmin
       .from("user_plans")
       .update({ status: "REPLACED" })
@@ -208,7 +207,8 @@ export async function purchasePlan(userId: string, planId: number) {
 
     if (replaceError) {
       /*
-       * Remove o novo plano antes de devolver o dinheiro.
+       * Se não conseguimos substituir o plano anterior,
+       * removemos o novo plano e fazemos o estorno.
        */
       await supabaseAdmin
         .from("user_plans")
@@ -217,6 +217,22 @@ export async function purchasePlan(userId: string, planId: number) {
 
       throw new Error(replaceError.message);
     }
+
+    /*
+     * Lemos novamente o saldo depois da compra.
+     * Assim a resposta enviada à página contém o saldo actual.
+     */
+    const { data: updatedProfile, error: balanceError } = await supabaseAdmin
+      .from("profiles")
+      .select("balance")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (balanceError) {
+      throw new Error(balanceError.message);
+    }
+
+    const newBalance = Number(updatedProfile?.balance ?? 0);
 
     await notify(
       userId,
@@ -236,7 +252,7 @@ export async function purchasePlan(userId: string, planId: number) {
   } catch (error) {
     /*
      * Se a activação falhar depois do débito,
-     * fazemos um estorno através do ledger.
+     * tentamos devolver o dinheiro através do ledger.
      */
     try {
       await ledger(
@@ -247,14 +263,17 @@ export async function purchasePlan(userId: string, planId: number) {
         `Estorno da compra do ${plan.name} devido a falha na activação.`,
       );
     } catch (refundError) {
-      console.error("Falha crítica ao estornar compra do plano:", refundError);
+      console.error(
+        "Falha crítica ao estornar compra do plano:",
+        refundError,
+      );
     }
 
     throw error instanceof Error
       ? error
       : new Error("Não foi possível concluir a compra do plano.");
   }
-  }
+}
 
 /* ------------------------- Operações do utilizador ------------------------- */
 
