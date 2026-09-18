@@ -500,6 +500,34 @@ function Users({ onDone }: { onDone: () => void }) {
     }
   };
 
+  const doRemovePlan = async (userId: string) => {
+  const confirmed = window.confirm(
+    "Tem certeza que deseja retirar o plano ativo deste utilizador? O utilizador ficará sem plano e não poderá realizar tarefas que exigem um plano ativo.",
+  );
+
+  if (!confirmed) return;
+
+  setRemovingPlan(userId);
+
+  try {
+    await removePlan({
+      data: { userId },
+    });
+
+    toast.success("Plano retirado com sucesso.");
+
+    onDone();
+  } catch (err) {
+    toast.error(
+      err instanceof Error
+        ? err.message
+        : "Erro ao retirar o plano.",
+    );
+  } finally {
+    setRemovingPlan(null);
+  }
+};
+
   const openPasswordForm = (userId: string) => {
     if (passwordUserId === userId) {
       setPasswordUserId(null);
