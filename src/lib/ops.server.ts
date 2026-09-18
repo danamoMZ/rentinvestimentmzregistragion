@@ -275,6 +275,63 @@ export async function purchasePlan(userId: string, planId: number) {
   }
 }
 
+export async function removeUserPlan(
+  adminId: string,
+  userId: string,
+) {
+  await assertAdmin(adminId);
+
+  if (!userId) {
+    throw new Error("Utilizador inválido.");
+  }
+
+  const { data: activePlan, error: findError } = await supabaseAdmin
+    .from("user_plans")
+    .select("id, user_id, plan_id, status")
+    .eq("user_id", userId)
+    .eq("status", "ACTIVE")
+    .maybeSingle();
+
+  if (findError) {
+    throw new Error(findError.message);
+  }
+
+  if (!activePlan) {
+    throw new Error("Este utilizador não possui um plano ativo.");
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from("user_plans")
+    .update({
+      status: "REPLACED",
+    })
+    .eq("id", activePlan.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  await logAdmin(
+    adminId,
+    "REMOVE_USER_PLAN",
+    userId,
+    null,
+    "Plano retirado/desativado pelo administrador",
+    "SUCCESS",
+  );
+
+  await notify(
+    userId,
+    "Plano desativado",
+    "O seu plano foi desativado pelo administrador. A sua conta está sem plano ativo.",
+  );
+
+  return {
+    success: true,
+    message: "Plano retirado com sucesso.",
+  };
+}
+
 /* ------------------------- Operações do utilizador ------------------------- */
 
 export async function submitDeposit(
