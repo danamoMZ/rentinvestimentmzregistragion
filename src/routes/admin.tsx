@@ -404,6 +404,7 @@ function Affiliates({ onDone }: { onDone: () => void }) {
 function Users({ onDone }: { onDone: () => void }) {
   const adjust = useServerFn(adjustBalanceFn);
   const block = useServerFn(setBlockedFn);
+  const removePlan = useServerFn(removeUserPlanFn);
   const changePassword = useServerFn(adminChangeUserPasswordFn);
 
   const [search, setSearch] = useState("");
@@ -420,6 +421,7 @@ function Users({ onDone }: { onDone: () => void }) {
 
   const [busy, setBusy] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
+  const [removingPlan, setRemovingPlan] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ["admin-users", search],
