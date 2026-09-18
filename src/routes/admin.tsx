@@ -2,12 +2,23 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ShieldAlert, ExternalLink, ArrowLeft, Copy, Gift } from "lucide-react";
+import {
+  Loader2,
+  ShieldAlert,
+  ExternalLink,
+  ArrowLeft,
+  Copy,
+  Gift,
+  KeyRound,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin, useSession } from "@/hooks/use-session";
 import {
   adjustBalanceFn,
+  adminChangeUserPasswordFn,
   broadcastFn,
   proofUrlFn,
   reviewAffiliateFn,
@@ -391,20 +402,39 @@ function Affiliates({ onDone }: { onDone: () => void }) {
 function Users({ onDone }: { onDone: () => void }) {
   const adjust = useServerFn(adjustBalanceFn);
   const block = useServerFn(setBlockedFn);
+  const changePassword = useServerFn(adminChangeUserPasswordFn);
+
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
+
+  const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [busy, setBusy] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["admin-users", search],
     queryFn: async () => {
-      let query = supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(100);
+      let query = supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
       if (search.trim()) {
         const term = `%${search.trim()}%`;
-        query = query.or(`full_name.ilike.${term},email.ilike.${term},public_id.ilike.${term},phone.ilike.${term}`);
+        query = query.or(
+          `full_name.ilike.${term},email.ilike.${term},public_id.ilike.${term},phone.ilike.${term}`,
+        );
       }
+
       const { data } = await query;
       return data ?? [];
     },
@@ -412,14 +442,26 @@ function Users({ onDone }: { onDone: () => void }) {
 
   const doAdjust = async (userId: string) => {
     setBusy(true);
+
     try {
-      await adjust({ data: { userId, amount: Number(amount), reason } });
+      await adjust({
+        data: {
+          userId,
+          amount: Number(amount),
+          reason,
+        },
+      });
+
       toast.success("Saldo ajustado.");
+
       setAmount("");
       setReason("");
+
       onDone();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao ajustar.");
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao ajustar.",
+      );
     } finally {
       setBusy(false);
     }
@@ -427,14 +469,99 @@ function Users({ onDone }: { onDone: () => void }) {
 
   const doBlock = async (userId: string, blocked: boolean) => {
     setBusy(true);
+
     try {
-      await block({ data: { userId, blocked } });
-      toast.success(blocked ? "Utilizador bloqueado." : "Utilizador desbloqueado.");
+      await block({
+        data: {
+          userId,
+          blocked,
+        },
+      });
+
+      toast.success(
+        blocked
+          ? "Utilizador bloqueado."
+          : "Utilizador desbloqueado.",
+      );
+
       onDone();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao atualizar.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Erro ao atualizar.",
+      );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const openPasswordForm = (userId: string) => {
+    if (passwordUserId === userId) {
+      setPasswordUserId(null);
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+      return;
+    }
+
+    setPasswordUserId(userId);
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  const doChangePassword = async (userId: string) => {
+    if (!newPassword) {
+      toast.error("Digite a nova palavra-passe.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error(
+        "A palavra-passe deve ter pelo menos 8 caracteres.",
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error(
+        "As palavras-passe não coincidem.",
+      );
+      return;
+    }
+
+    setPasswordBusy(true);
+
+    try {
+      const result = await changePassword({
+        data: {
+          userId,
+          newPassword,
+        },
+      });
+
+      toast.success(
+        `Palavra-passe de ${result.name || result.publicId || "utilizador"} alterada com sucesso.`,
+      );
+
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordUserId(null);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+
+      onDone();
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível alterar a palavra-passe.",
+      );
+    } finally {
+      setPasswordBusy(false);
     }
   };
 
@@ -445,47 +572,276 @@ function Users({ onDone }: { onDone: () => void }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
+
       <div className="mt-3 divide-y divide-border">
         {(data ?? []).map((u) => (
           <div key={u.id} className="py-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold">
-                  {u.full_name || u.email} {u.blocked && <span className="text-destructive">(bloqueado)</span>}
+                  {u.full_name || u.email}{" "}
+                  {u.blocked && (
+                    <span className="text-destructive">
+                      (bloqueado)
+                    </span>
+                  )}
                 </p>
+
                 <p className="text-xs text-muted-foreground">
-                  {u.public_id} · {u.email} · {u.phone} · Saldo {MZN(u.balance)}
+                  {u.public_id} · {u.email} · {u.phone} · Saldo{" "}
+                  {MZN(u.balance)}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setOpenId(openId === u.id ? null : u.id)}>
-                  Gerir
-                </Button>
+
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
-                  variant={u.blocked ? "secondary" : "destructive"}
-                  onClick={() => doBlock(u.id, !u.blocked)}
+                  variant="outline"
+                  onClick={() =>
+                    setOpenId(
+                      openId === u.id ? null : u.id,
+                    )
+                  }
+                >
+                  Gerir
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    openPasswordForm(u.id)
+                  }
+                  className="gap-1.5"
+                >
+                  <KeyRound className="size-4" />
+                  Palavra-passe
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant={
+                    u.blocked
+                      ? "secondary"
+                      : "destructive"
+                  }
+                  onClick={() =>
+                    doBlock(u.id, !u.blocked)
+                  }
                   disabled={busy}
                 >
-                  {u.blocked ? "Desbloquear" : "Bloquear"}
+                  {u.blocked
+                    ? "Desbloquear"
+                    : "Bloquear"}
                 </Button>
               </div>
             </div>
+
             {openId === u.id && (
               <div className="mt-3 space-y-2 rounded-xl border border-border bg-secondary p-3">
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Valor (use negativo para debitar)</Label>
-                    <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                    <Label>
+                      Valor (use negativo para debitar)
+                    </Label>
+
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e) =>
+                        setAmount(e.target.value)
+                      }
+                    />
                   </div>
+
                   <div className="space-y-1.5">
                     <Label>Motivo</Label>
-                    <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+
+                    <Input
+                      value={reason}
+                      onChange={(e) =>
+                        setReason(e.target.value)
+                      }
+                    />
                   </div>
                 </div>
-                <Button size="sm" onClick={() => doAdjust(u.id)} disabled={busy || !amount || !reason.trim()}>
-                  {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Aplicar ajuste
+
+                <Button
+                  size="sm"
+                  onClick={() => doAdjust(u.id)}
+                  disabled={
+                    busy ||
+                    !amount ||
+                    !reason.trim()
+                  }
+                >
+                  {busy && (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  )}
+
+                  Aplicar ajuste
                 </Button>
+              </div>
+            )}
+
+            {passwordUserId === u.id && (
+              <div className="mt-3 rounded-xl border border-primary/30 bg-secondary p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <KeyRound className="size-4 text-primary" />
+
+                  <div>
+                    <p className="text-sm font-semibold">
+                      Alterar palavra-passe
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      {u.full_name ||
+                        u.email ||
+                        u.public_id}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`new-password-${u.id}`}>
+                      Nova palavra-passe
+                    </Label>
+
+                    <div className="relative">
+                      <Input
+                        id={`new-password-${u.id}`}
+                        type={
+                          showPassword
+                            ? "text"
+                            : "password"
+                        }
+                        value={newPassword}
+                        onChange={(e) =>
+                          setNewPassword(
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Mínimo 8 caracteres"
+                        autoComplete="new-password"
+                        className="pr-10"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowPassword(
+                            (value) => !value,
+                          )
+                        }
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={
+                          showPassword
+                            ? "Ocultar palavra-passe"
+                            : "Mostrar palavra-passe"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor={`confirm-password-${u.id}`}
+                    >
+                      Confirmar palavra-passe
+                    </Label>
+
+                    <div className="relative">
+                      <Input
+                        id={`confirm-password-${u.id}`}
+                        type={
+                          showConfirmPassword
+                            ? "text"
+                            : "password"
+                        }
+                        value={confirmPassword}
+                        onChange={(e) =>
+                          setConfirmPassword(
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Repita a nova palavra-passe"
+                        autoComplete="new-password"
+                        className="pr-10"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(
+                            (value) => !value,
+                          )
+                        }
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={
+                          showConfirmPassword
+                            ? "Ocultar confirmação"
+                            : "Mostrar confirmação"
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="size-4" />
+                        ) : (
+                          <Eye className="size-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      doChangePassword(u.id)
+                    }
+                    disabled={
+                      passwordBusy ||
+                      !newPassword ||
+                      !confirmPassword
+                    }
+                    className="gap-1.5"
+                  >
+                    {passwordBusy ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <KeyRound className="size-4" />
+                    )}
+
+                    Alterar palavra-passe
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setPasswordUserId(null);
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setShowPassword(false);
+                      setShowConfirmPassword(false);
+                    }}
+                    disabled={passwordBusy}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+
+                <p className="mt-2 text-xs text-muted-foreground">
+                  A nova palavra-passe deve ter pelo menos
+                  8 caracteres.
+                </p>
               </div>
             )}
           </div>
@@ -494,7 +850,7 @@ function Users({ onDone }: { onDone: () => void }) {
     </Card>
   );
 }
-
+         
 function Tickets({ onDone }: { onDone: () => void }) {
   const profiles = useProfilesMap();
   const reply = useServerFn(replyTicketFn);
