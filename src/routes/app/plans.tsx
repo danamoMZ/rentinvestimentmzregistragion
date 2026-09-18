@@ -96,6 +96,60 @@ const balance = Number(profile?.balance ?? 0);
     },
   });
 
+  const buyWithBalance = async (plan: Plan) => {
+  if (!userId) {
+    toast.error("Não foi possível identificar a sua conta.");
+    return;
+  }
+
+  if (balance < Number(plan.price)) {
+    toast.error(
+      `Saldo insuficiente. O ${plan.name} custa ${MZN(plan.price)} e o seu saldo actual é ${MZN(balance)}.`,
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Comprar ${plan.name} por ${MZN(plan.price)} usando o seu saldo?\n\nSaldo actual: ${MZN(balance)}\nSaldo depois da compra: ${MZN(balance - Number(plan.price))}`,
+  );
+
+  if (!confirmed) return;
+
+  setBuyingPlanId(plan.id);
+
+  try {
+    const result = await purchase({
+      data: {
+        planId: plan.id,
+      },
+    });
+
+    toast.success(
+      `${result.planName} comprado com sucesso! Saldo actual: ${MZN(result.balance)}.`,
+    );
+
+    await queryClient.invalidateQueries({
+      queryKey: ["my-profile-balance", userId],
+    });
+
+    await queryClient.invalidateQueries({
+      queryKey: ["active-plan", userId],
+    });
+
+    await queryClient.invalidateQueries({
+      queryKey: ["plans"],
+    });
+  } catch (err) {
+    toast.error(
+      err instanceof Error
+        ? err.message
+        : "Não foi possível comprar o plano.",
+    );
+  } finally {
+    setBuyingPlanId(null);
+  }
+};
+
   const submit = async () => {
     if (!selected || !userId) return;
     if (!sender.trim() || !txId.trim()) {
