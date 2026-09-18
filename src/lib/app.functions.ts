@@ -112,6 +112,15 @@ export const updateUserFn = createServerFn({ method: "POST" })
     return ops.updateUserProfile(context.userId, data.userId, data.fields);
   });
 
+export const removeUserPlanFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.removeUserPlan(context.userId, data.userId);
+  });
+
 export const broadcastFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { title: string; body: string; onlyBlocked: boolean }) => data)
