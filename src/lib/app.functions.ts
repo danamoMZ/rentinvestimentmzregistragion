@@ -160,6 +160,24 @@ export const resetPasswordFn = createServerFn({ method: "POST" })
     return ops.resetPassword(data.password);
   });
 
+export const adminChangeUserPasswordFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      userId: string;
+      newPassword: string;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.adminChangeUserPassword(
+      context.userId,
+      data.userId,
+      data.newPassword,
+    );
+  });
+
 export const updatePlanFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
