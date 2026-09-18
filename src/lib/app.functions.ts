@@ -173,6 +173,14 @@ export const updatePlanFn = createServerFn({ method: "POST" })
     return ops.updatePlan(context.userId, data.planId, data.fields);
   });
 
+export const purchasePlanFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { planId: number }) => data)
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.purchasePlan(context.userId, data.planId);
+  });
+
 export const createPromoCodeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { bonus?: number; maxUses?: number; validityMinutes?: number }) => data)
