@@ -40,11 +40,30 @@ function Plans() {
   const { userId } = useSession();
   const queryClient = useQueryClient();
   const deposit = useServerFn(depositFn);
+  const purchase = useServerFn(purchasePlanFn);
   const [selected, setSelected] = useState<Plan | null>(null);
   const [sender, setSender] = useState("");
   const [txId, setTxId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [buyingPlanId, setBuyingPlanId] = useState<number | null>(null);
+
+  const { data: profile } = useQuery({
+  queryKey: ["my-profile-balance", userId],
+  enabled: !!userId,
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("balance")
+      .eq("id", userId!)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+});
+
+const balance = Number(profile?.balance ?? 0);
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ["plans"],
