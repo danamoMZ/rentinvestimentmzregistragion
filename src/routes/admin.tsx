@@ -716,6 +716,35 @@ function Users({ onDone }: { onDone: () => void }) {
               </div>
             )}
 
+            <div className="rounded-xl border border-border bg-background p-3">
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p className="text-sm font-semibold">
+        Gestão do plano
+      </p>
+
+      <p className="text-xs text-muted-foreground">
+        Retire o plano ativo para deixar o utilizador sem plano.
+      </p>
+    </div>
+
+    <Button
+      size="sm"
+      variant="destructive"
+      onClick={() => doRemovePlan(u.id)}
+      disabled={removingPlan === u.id}
+    >
+      {removingPlan === u.id && (
+        <Loader2 className="mr-2 size-4 animate-spin" />
+      )}
+
+      <Power className="mr-2 size-4" />
+
+      Retirar plano
+    </Button>
+  </div>
+</div>
+
             {passwordUserId === u.id && (
               <div className="mt-3 rounded-xl border border-primary/30 bg-secondary p-4">
                 <div className="mb-3 flex items-center gap-2">
