@@ -184,10 +184,19 @@ const balance = Number(profile?.balance ?? 0);
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Planos RENT</h1>
-        <p className="text-sm text-muted-foreground">Escolha um plano e envie o comprovativo do depósito.</p>
-      </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h1 className="text-2xl font-bold tracking-tight">Planos RENT</h1>
+    <p className="text-sm text-muted-foreground">
+      Escolha um plano e compre com o seu saldo ou faça um depósito.
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-border bg-secondary px-4 py-3">
+    <p className="text-xs text-muted-foreground">Saldo disponível</p>
+    <p className="text-lg font-bold">{MZN(balance)}</p>
+  </div>
+</div>
 
       {pending && (
         <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
@@ -220,9 +229,41 @@ const balance = Number(profile?.balance ?? 0);
               <Row label="Tarefas/dia" value={String(plan.daily_task_count)} />
               <Row label="Valor por tarefa" value={MZN(plan.task_value)} />
               <Row label="Total do ciclo" value={MZN(plan.total_task_income)} />
-              <Button className="mt-3 w-full" disabled={!!pending} onClick={() => setSelected(plan)}>
-                {pending ? "Pedido pendente" : "Comprar plano"}
-              </Button>
+              <div className="mt-3 grid gap-2">
+  <Button
+    className="w-full"
+    disabled={
+      !!pending ||
+      buyingPlanId === plan.id ||
+      balance < Number(plan.price)
+    }
+    onClick={() => buyWithBalance(plan)}
+  >
+    {buyingPlanId === plan.id ? (
+      <>
+        <Loader2 className="mr-2 size-4 animate-spin" />
+        A comprar...
+      </>
+    ) : (
+      <>
+        <Wallet className="mr-2 size-4" />
+        {balance >= Number(plan.price)
+          ? "Comprar com saldo"
+          : "Saldo insuficiente"}
+      </>
+    )}
+  </Button>
+
+  <Button
+    type="button"
+    variant="outline"
+    className="w-full"
+    disabled={!!pending}
+    onClick={() => setSelected(plan)}
+  >
+    {pending ? "Pedido pendente" : "Depositar / pagar"}
+  </Button>
+</div>
             </div>
           </article>
         ))}
