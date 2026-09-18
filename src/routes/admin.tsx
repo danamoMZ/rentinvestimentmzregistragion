@@ -33,6 +33,7 @@ import {
   createPromoCodeFn,
   setPromoCodeActiveFn,
   grantShareRewardFn,
+  removeUserPlanFn,
 } from "@/lib/app.functions";
 import { MZN, PAYMENT_FIELDS, STATUS_CLASS, STATUS_LABEL, SUPPORT_FIELDS, formatDateTime } from "@/lib/format";
 import { Logo } from "@/components/brand/Logo";
