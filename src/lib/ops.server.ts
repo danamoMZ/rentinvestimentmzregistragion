@@ -171,15 +171,17 @@ export async function purchasePlan(userId: string, planId: number) {
      * na aprovação de depósitos:
      * o novo plano fica activo e o anterior é substituído.
      */
-    const { data: oldPlans, error: oldPlansError } = await supabaseAdmin
+    const { data: newPlan, error: insertError } = await supabaseAdmin
       .from("user_plans")
-      .select("id, status")
-      .eq("user_id", userId)
-      .eq("status", "ACTIVE");
-
-    if (oldPlansError) {
-      throw new Error(oldPlansError.message);
-    }
+      .insert({
+        user_id: userId,
+        plan_id: plan.id,
+        start_date: start,
+        end_date: end,
+        status: "ACTIVE",
+      })
+      .select("id")
+      .single();
 
     const { data: newPlan, error: insertError } = await supabaseAdmin
       .from("user_plans")
