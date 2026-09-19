@@ -11,6 +11,7 @@ import {
   Bell,
   User,
   Shield,
+  ShieldAlert,
   LogOut,
   Megaphone,
   HeartHandshake,
@@ -117,6 +118,18 @@ const { data: isAdmin } = useIsAdmin();
     }
   }, [loading, session, navigate]);
 
+  useEffect(() => {
+  if (!userId || !session) return;
+
+  const interval = window.setInterval(() => {
+    refetchProfile();
+  }, 5000);
+
+  return () => {
+    window.clearInterval(interval);
+  };
+}, [userId, session, refetchProfile]);
+
   const { data: unread } = useQuery({
     queryKey: ["unread", userId],
     enabled: !!userId,
@@ -135,12 +148,84 @@ const { data: isAdmin } = useIsAdmin();
     },
   });
 
-  if (loading || !session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-primary" />
+  if (loading || !session || profileLoading) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <Loader2 className="size-6 animate-spin text-primary" />
+    </div>
+  );
+  }
+
+  if (profile?.blocked === true) {
+  const handleBlockedLogout = async () => {
+    await supabase.auth.signOut();
+
+    navigate({
+      to: "/auth",
+      replace: true,
+    });
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="w-full max-w-md">
+        <div className="overflow-hidden rounded-3xl border border-destructive/30 bg-card shadow-2xl">
+          <div className="bg-destructive px-6 py-8 text-center text-destructive-foreground">
+            <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-white/15">
+              <ShieldAlert className="size-10" />
+            </div>
+
+            <h1 className="mt-5 text-3xl font-extrabold">
+              Conta bloqueada
+            </h1>
+
+            <p className="mt-2 text-sm opacity-90">
+              O acesso à sua conta foi temporariamente bloqueado.
+            </p>
+          </div>
+
+          <div className="space-y-5 p-6 text-center">
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
+              <p className="text-sm font-semibold text-foreground">
+                O acesso à plataforma está impedido.
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Não pode utilizar o saldo, planos, tarefas, jogos,
+                carteira ou outras funcionalidades enquanto a conta
+                permanecer bloqueada.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-secondary p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Estado da conta
+              </p>
+
+              <p className="mt-1 text-lg font-bold text-destructive">
+                BLOQUEADA
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full gap-2 rounded-xl py-6 text-base font-bold"
+              onClick={handleBlockedLogout}
+            >
+              <LogOut className="size-5" />
+              Sair da conta
+            </Button>
+
+            <p className="text-xs leading-5 text-muted-foreground">
+              Se acredita que este bloqueio foi feito por engano,
+              entre em contacto com o suporte da plataforma.
+            </p>
+          </div>
+        </div>
       </div>
-    );
+    </div>
+  );
   }
 
   const handleSignOut = async () => {
