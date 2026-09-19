@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Gift, Layers, CheckSquare, Users, HeartHandshake, Wallet, Send, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Gift,
+  Layers,
+  CheckSquare,
+  Users,
+  HeartHandshake,
+  Wallet,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { MZN, toHref } from "@/lib/format";
@@ -47,6 +56,12 @@ export function WelcomeGuide() {
   });
 
   const telegram = (settings?.["support_telegram_group"] ?? "").trim();
+  const whatsapp = (
+   settings?.["support_whatsapp"] ??
+   settings?.["support_whatsapp_group"] ??
+   settings?.["whatsapp"] ??
+   ""
+  ).trim();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -152,13 +167,55 @@ export function WelcomeGuide() {
         </div>
 
         <DialogFooter className="flex-col gap-2 px-6 pb-6 sm:flex-col">
-          {telegram && (
-            <Button asChild className="w-full gap-2">
-              <a href={toHref(telegram)} target="_blank" rel="noopener noreferrer">
-                <Send className="size-4" /> Entrar no grupo do Telegram
-              </a>
-            </Button>
-          )}
+            {telegram && (
+  <Button asChild className="w-full gap-2">
+    <a
+      href={toHref(telegram)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="size-5 fill-current"
+        aria-hidden="true"
+      >
+        <path d="M21.4 3.6 18.2 20c-.24 1.16-.87 1.45-1.77.9l-4.9-3.61-2.36 2.27c-.26.26-.48.48-.98.48l.35-4.99 9.08-8.2c.4-.35-.09-.55-.62-.2L5.77 13.7.94 12.19c-1.05-.33-1.07-1.05.22-1.56L20.04 3.1c.88-.32 1.65.2 1.36.5Z" />
+      </svg>
+      Entrar no grupo do Telegram
+    </a>
+  </Button>
+)}
+
+{whatsapp && (
+  <Button
+    asChild
+    variant="outline"
+    className="w-full gap-2"
+  >
+    <a
+      href={toHref(whatsapp)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="size-5 fill-current"
+        aria-hidden="true"
+      >
+        <path d="M12 2a9.9 9.9 0 0 0-8.53 14.92L2 22l5.25-1.38A9.9 9.9 0 1 0 12 2Zm0 18.18a8.25 8.25 0 0 1-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31A8.25 8.25 0 1 1 12 20.18Zm4.53-6.19c-.25-.13-1.48-.73-1.71-.81-.23-.09-.4-.13-.57.13-.17.25-.65.81-.8.98-.15.17-.29.19-.54.06-.25-.13-1.05-.39-2-1.24-.74-.66-1.24-1.48-1.39-1.73-.15-.25-.02-.39.11-.52.12-.12.25-.29.38-.44.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.57-1.37-.78-1.88-.21-.5-.42-.43-.57-.44h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.44 1.02 2.61c.13.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.48-.61 1.69-1.2.21-.59.21-1.1.15-1.2-.06-.1-.23-.16-.48-.29Z" />
+      </svg>
+      Entrar no grupo do WhatsApp
+    </a>
+  </Button>
+)}
+
+<Button
+  variant="outline"
+  className="w-full"
+  onClick={() => setOpen(false)}
+>
+  Entendi, começar
+</Button>
           <Button variant="outline" className="w-full" onClick={() => setOpen(false)}>
             Entendi, começar
           </Button>
