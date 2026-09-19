@@ -92,9 +92,15 @@ const MORE = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, loading, userId } = useSession();
-  const navigate = useNavigate();
-  const { data: profile } = useProfile();
-  const { data: isAdmin } = useIsAdmin();
+const navigate = useNavigate();
+
+const {
+  data: profile,
+  isLoading: profileLoading,
+  refetch: refetchProfile,
+} = useProfile();
+
+const { data: isAdmin } = useIsAdmin();
 
   const pathname = useRouterState({
     select: (s) => s.location.pathname,
