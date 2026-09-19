@@ -20,17 +20,14 @@ function AppLayout() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="text-center">
-          <div className="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
-          <p className="text-sm text-muted-foreground">
-            A verificar a sua conta...
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          A verificar a sua conta...
+        </p>
       </div>
     );
   }
 
-  if (profile?.blocked) {
+  if (profile?.blocked === true) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-md rounded-2xl border border-destructive/30 bg-card p-6 text-center shadow-lg">
@@ -61,7 +58,7 @@ function AppLayout() {
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition hover:opacity-90"
+            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground"
           >
             <LogOut className="mr-2 size-4" />
             Sair da conta
