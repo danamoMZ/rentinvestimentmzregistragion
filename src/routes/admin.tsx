@@ -126,6 +126,7 @@ function AdminPage() {
             <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="promo">Recarga secreta</TabsTrigger>
             <TabsTrigger value="share">Partilha e Ganha</TabsTrigger>
+            <TabsTrigger value="binance">Binance USDT</TabsTrigger>
             <TabsTrigger value="settings">Definições</TabsTrigger>
           </TabsList>
 
@@ -155,6 +156,9 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="share">
             <ShareRewardAdmin />
+          </TabsContent>
+          <TabsContent value="binance">
+           <BinanceUsdtSettings />
           </TabsContent>
           <TabsContent value="settings">
             <Settings />
