@@ -1196,3 +1196,557 @@ export async function rouletteFeed() {
     createdAt: r.created_at,
   }));
 }
+
+// ============================================================
+// USDT TRC20
+// ============================================================
+
+const USDT_TRC20_CONTRACT =
+  "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+const TRONGRID_BASE_URL =
+  "https://api.trongrid.io";
+
+type UsdtSettings = {
+  network: string;
+  symbol: string;
+  deposit_address: string;
+  withdrawal_enabled: boolean;
+  deposit_enabled: boolean;
+  usdt_mzn_rate: number;
+  min_deposit_usdt: number;
+  min_withdrawal_usdt: number;
+};
+
+function normalizeTronAddress(value: string) {
+  return String(value ?? "").trim();
+}
+
+function isValidTronAddress(value: string) {
+  const address = normalizeTronAddress(value);
+
+  // Endereços TRON em formato Base58 normalmente começam com T
+  // e possuem 34 caracteres.
+  return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
+}
+
+async function getUsdtSettingsInternal(): Promise<UsdtSettings> {
+  const { data, error } = await supabaseAdmin
+    .from("usdt_settings")
+    .select(
+      "network,symbol,deposit_address,withdrawal_enabled,deposit_enabled,usdt_mzn_rate,min_deposit_usdt,min_withdrawal_usdt",
+    )
+    .eq("id", true)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível carregar as configurações USDT: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Configuração USDT não encontrada.",
+    );
+  }
+
+  return {
+    network: String(data.network ?? "TRC20"),
+    symbol: String(data.symbol ?? "USDT"),
+    deposit_address: String(data.deposit_address ?? ""),
+    withdrawal_enabled: Boolean(data.withdrawal_enabled),
+    deposit_enabled: Boolean(data.deposit_enabled),
+    usdt_mzn_rate: Number(data.usdt_mzn_rate ?? 0),
+    min_deposit_usdt: Number(data.min_deposit_usdt ?? 1),
+    min_withdrawal_usdt: Number(data.min_withdrawal_usdt ?? 1),
+  };
+}
+
+export async function getUsdtSettings(userId: string) {
+  await assertNotBlocked(userId);
+
+  const settings = await getUsdtSettingsInternal();
+
+  return {
+    network: settings.network,
+    symbol: settings.symbol,
+    depositAddress: settings.deposit_address,
+    depositEnabled: settings.deposit_enabled,
+    withdrawalEnabled: settings.withdrawal_enabled,
+    usdtMznRate: settings.usdt_mzn_rate,
+    minDepositUsdt: settings.min_deposit_usdt,
+    minWithdrawalUsdt: settings.min_withdrawal_usdt,
+  };
+}
+
+async function getTrc20Transfers(
+  address: string,
+  txid?: string,
+) {
+  const apiKey =
+    process.env.TRON_PRO_API_KEY?.trim() || "";
+
+  const params = new URLSearchParams();
+
+  params.set("only_confirmed", "true");
+  params.set("limit", "200");
+  params.set(
+    "contract_address",
+    USDT_TRC20_CONTRACT,
+  );
+  params.set("only_to", "true");
+
+  if (txid) {
+    // O endpoint é consultado pelo histórico do endereço.
+    // O TXID será comparado localmente para evitar aceitar
+    // uma transferência diferente.
+  }
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  if (apiKey) {
+    headers["TRON-PRO-API-KEY"] = apiKey;
+  }
+
+  const response = await fetch(
+    `${TRONGRID_BASE_URL}/v1/accounts/${encodeURIComponent(
+      address,
+    )}/transactions/trc20?${params.toString()}`,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Erro ao consultar a rede TRON: HTTP ${response.status}`,
+    );
+  }
+
+  const json = await response.json();
+
+  return Array.isArray(json?.data)
+    ? json.data
+    : [];
+}
+
+function parseUsdtAmount(rawValue: unknown) {
+  const value = Number(rawValue);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  /*
+   * USDT TRC20 usa normalmente 6 casas decimais.
+   * O TronGrid pode devolver o valor já formatado,
+   * por isso primeiro tratamos o valor recebido como decimal.
+   */
+  return value;
+}
+
+export async function createUsdtDeposit(
+  userId: string,
+  txid: string,
+) {
+  await assertNotBlocked(userId);
+
+  const cleanTxid = String(txid ?? "").trim();
+
+  if (!cleanTxid) {
+    throw new Error(
+      "Informe o TXID da transferência USDT.",
+    );
+  }
+
+  if (cleanTxid.length < 20) {
+    throw new Error(
+      "O TXID informado não parece ser válido.",
+    );
+  }
+
+  const settings = await getUsdtSettingsInternal();
+
+  if (!settings.deposit_enabled) {
+    throw new Error(
+      "Os depósitos USDT TRC20 estão temporariamente desativados.",
+    );
+  }
+
+  if (settings.network !== "TRC20") {
+    throw new Error(
+      "A configuração atual de pagamentos não está definida como TRC20.",
+    );
+  }
+
+  if (settings.symbol !== "USDT") {
+    throw new Error(
+      "A configuração atual de pagamentos não está definida como USDT.",
+    );
+  }
+
+  if (!settings.deposit_address) {
+    throw new Error(
+      "A carteira de recebimento USDT ainda não foi configurada.",
+    );
+  }
+
+  if (!isValidTronAddress(settings.deposit_address)) {
+    throw new Error(
+      "A carteira de recebimento USDT não possui um endereço TRON válido.",
+    );
+  }
+
+  if (
+    !Number.isFinite(settings.usdt_mzn_rate) ||
+    settings.usdt_mzn_rate <= 0
+  ) {
+    throw new Error(
+      "A taxa USDT/MZN ainda não foi configurada.",
+    );
+  }
+
+  // Impede reutilização do mesmo TXID.
+  const { data: existingTx, error: existingError } =
+    await supabaseAdmin
+      .from("usdt_deposits")
+      .select("id,status,user_id")
+      .eq("txid", cleanTxid)
+      .maybeSingle();
+
+  if (existingError) {
+    throw new Error(
+      `Erro ao verificar TXID: ${existingError.message}`,
+    );
+  }
+
+  if (existingTx) {
+    throw new Error(
+      "Este TXID já foi utilizado ou já está em processamento.",
+    );
+  }
+
+  const transfers = await getTrc20Transfers(
+    settings.deposit_address,
+    cleanTxid,
+  );
+
+  const transfer = transfers.find(
+    (item: any) =>
+      String(item?.transaction_id ?? "") === cleanTxid &&
+      String(item?.to ?? "").trim() ===
+        settings.deposit_address,
+  );
+
+  if (!transfer) {
+    throw new Error(
+      "Não encontramos uma transferência USDT TRC20 confirmada para este TXID e esta carteira.",
+    );
+  }
+
+  const tokenAddress = String(
+    transfer?.token_info?.address ??
+      transfer?.contract_address ??
+      "",
+  ).trim();
+
+  if (
+    tokenAddress &&
+    tokenAddress !== USDT_TRC20_CONTRACT
+  ) {
+    throw new Error(
+      "A transação encontrada não corresponde ao contrato USDT TRC20 esperado.",
+    );
+  }
+
+  const amountUsdt = parseUsdtAmount(
+    transfer?.value,
+  );
+
+  if (
+    !Number.isFinite(amountUsdt) ||
+    amountUsdt <= 0
+  ) {
+    throw new Error(
+      "Não foi possível determinar o valor USDT da transferência.",
+    );
+  }
+
+  if (
+    amountUsdt < settings.min_deposit_usdt
+  ) {
+    throw new Error(
+      `O depósito mínimo é ${settings.min_deposit_usdt} USDT.`,
+    );
+  }
+
+  const amountMzn = Number(
+    (amountUsdt * settings.usdt_mzn_rate).toFixed(2),
+  );
+
+  if (
+    !Number.isFinite(amountMzn) ||
+    amountMzn <= 0
+  ) {
+    throw new Error(
+      "Não foi possível calcular o valor em MZN.",
+    );
+  }
+
+  const senderAddress =
+    String(transfer?.from ?? "").trim() || null;
+
+  const recipientAddress =
+    String(transfer?.to ?? "").trim() || null;
+
+  const confirmations = Number(
+    transfer?.block_timestamp ? 1 : 0,
+  );
+
+  const { data: inserted, error: insertError } =
+    await supabaseAdmin
+      .from("usdt_deposits")
+      .insert({
+        user_id: userId,
+        network: "TRC20",
+        token: "USDT",
+        deposit_address:
+          settings.deposit_address,
+        txid: cleanTxid,
+        sender_address: senderAddress,
+        recipient_address: recipientAddress,
+        amount_usdt: amountUsdt,
+        exchange_rate: settings.usdt_mzn_rate,
+        amount_mzn: amountMzn,
+        confirmations,
+        status: "CONFIRMED",
+        confirmed_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+  if (insertError) {
+    if (
+      insertError.code === "23505"
+    ) {
+      throw new Error(
+        "Este TXID já foi registado por outra operação.",
+      );
+    }
+
+    throw new Error(
+      `Não foi possível registar o depósito USDT: ${insertError.message}`,
+    );
+  }
+
+  // Crédito através do mesmo ledger utilizado pelo restante sistema.
+  await ledger(
+    userId,
+    "USDT_DEPOSIT",
+    amountMzn,
+    `USDT-${inserted.id}`,
+    `Depósito USDT TRC20 — ${amountUsdt} USDT`,
+  );
+
+  const ledgerReference =
+    `USDT-${inserted.id}`;
+
+  const { error: updateError } =
+    await supabaseAdmin
+      .from("usdt_deposits")
+      .update({
+        status: "CREDITED",
+        ledger_reference: ledgerReference,
+        credited_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", inserted.id);
+
+  if (updateError) {
+    throw new Error(
+      `O depósito foi registado, mas não foi possível finalizar o estado: ${updateError.message}`,
+    );
+  }
+
+  await supabaseAdmin
+    .from("usdt_events")
+    .insert({
+      event_type: "DEPOSIT_CREDITED",
+      user_id: userId,
+      deposit_id: inserted.id,
+      txid: cleanTxid,
+      amount_usdt: amountUsdt,
+      amount_mzn: amountMzn,
+      message:
+        `Depósito USDT creditado: ${amountUsdt} USDT → ${amountMzn} MZN`,
+    });
+
+  return {
+    success: true,
+    depositId: inserted.id,
+    txid: cleanTxid,
+    amountUsdt,
+    amountMzn,
+    exchangeRate: settings.usdt_mzn_rate,
+  };
+}
+
+export async function requestUsdtWithdrawal(
+  userId: string,
+  amountMzn: number,
+  destinationAddress: string,
+) {
+  await assertNotBlocked(userId);
+
+  const settings = await getUsdtSettingsInternal();
+
+  if (!settings.withdrawal_enabled) {
+    throw new Error(
+      "Os saques USDT TRC20 estão temporariamente desativados.",
+    );
+  }
+
+  if (settings.network !== "TRC20") {
+    throw new Error(
+      "A rede de saque não está configurada como TRC20.",
+    );
+  }
+
+  if (
+    !Number.isFinite(settings.usdt_mzn_rate) ||
+    settings.usdt_mzn_rate <= 0
+  ) {
+    throw new Error(
+      "A taxa USDT/MZN ainda não foi configurada.",
+    );
+  }
+
+  const address =
+    normalizeTronAddress(destinationAddress);
+
+  if (!isValidTronAddress(address)) {
+    throw new Error(
+      "Informe um endereço TRON/TRC20 válido.",
+    );
+  }
+
+  const amount = Number(amountMzn);
+
+  if (
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
+    throw new Error(
+      "Informe um valor válido em MZN.",
+    );
+  }
+
+  const amountUsdt = Number(
+    (amount / settings.usdt_mzn_rate).toFixed(6),
+  );
+
+  if (
+    amountUsdt < settings.min_withdrawal_usdt
+  ) {
+    throw new Error(
+      `O saque mínimo é ${settings.min_withdrawal_usdt} USDT.`,
+    );
+  }
+
+  // Mantemos o saldo MZN como saldo principal.
+  const { data: profile, error: profileError } =
+    await supabaseAdmin
+      .from("profiles")
+      .select("balance")
+      .eq("id", userId)
+      .single();
+
+  if (profileError) {
+    throw new Error(
+      `Não foi possível consultar o saldo: ${profileError.message}`,
+    );
+  }
+
+  const balance = Number(profile?.balance ?? 0);
+
+  if (balance < amount) {
+    throw new Error(
+      "Saldo MZN insuficiente.",
+    );
+  }
+
+  const { data: pending, error: pendingError } =
+    await supabaseAdmin
+      .from("usdt_withdrawals")
+      .select("id")
+      .eq("user_id", userId)
+      .in("status", [
+        "PENDING",
+        "APPROVED",
+        "PROCESSING",
+      ])
+      .limit(1);
+
+  if (pendingError) {
+    throw new Error(
+      `Não foi possível verificar saques pendentes: ${pendingError.message}`,
+    );
+  }
+
+  if (pending && pending.length > 0) {
+    throw new Error(
+      "Já existe um saque USDT em processamento.",
+    );
+  }
+
+  const { data: withdrawal, error } =
+    await supabaseAdmin
+      .from("usdt_withdrawals")
+      .insert({
+        user_id: userId,
+        network: "TRC20",
+        token: "USDT",
+        destination_address: address,
+        amount_mzn: amount,
+        exchange_rate: settings.usdt_mzn_rate,
+        amount_usdt: amountUsdt,
+        fee_mzn: 0,
+        net_amount_mzn: amount,
+        status: "PENDING",
+      })
+      .select("id")
+      .single();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível criar o saque USDT: ${error.message}`,
+    );
+  }
+
+  await supabaseAdmin
+    .from("usdt_events")
+    .insert({
+      event_type: "WITHDRAWAL_REQUESTED",
+      user_id: userId,
+      withdrawal_id: withdrawal.id,
+      amount_usdt: amountUsdt,
+      amount_mzn: amount,
+      message:
+        `Pedido de saque USDT: ${amountUsdt} USDT`,
+    });
+
+  return {
+    success: true,
+    withdrawalId: withdrawal.id,
+    amountMzn: amount,
+    amountUsdt,
+    exchangeRate: settings.usdt_mzn_rate,
+    destinationAddress: address,
+    status: "PENDING",
+  };
+}
