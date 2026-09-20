@@ -2127,7 +2127,7 @@ export async function testBinanceConnection(
 
   try {
     const response = await fetch(
-      "https://api.binance.com/api/v3/ping",
+     "https://data-api.binance.vision/api/v3/ping",
       {
         method: "GET",
         headers: {
