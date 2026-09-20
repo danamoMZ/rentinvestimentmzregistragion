@@ -1817,3 +1817,122 @@ export async function requestUsdtWithdrawal(
     throw error;
   }
 }
+
+// ============================================================
+// BINANCE USDT TRC20
+// ============================================================
+
+type BinanceSettings = {
+  enabled: boolean;
+  automatic_withdrawals: boolean;
+  asset: string;
+  network: string;
+  api_configured: boolean;
+};
+
+async function getBinanceSettingsInternal(): Promise<BinanceSettings> {
+  const { data, error } = await supabaseAdmin
+    .from("binance_settings")
+    .select(
+      "enabled,automatic_withdrawals,asset,network,api_configured",
+    )
+    .eq("id", true)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível carregar as configurações Binance: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Configuração Binance não encontrada.",
+    );
+  }
+
+  return {
+    enabled: Boolean(data.enabled),
+    automatic_withdrawals: Boolean(
+      data.automatic_withdrawals,
+    ),
+    asset: String(data.asset ?? "USDT"),
+    network: String(data.network ?? "TRC20"),
+    api_configured: Boolean(data.api_configured),
+  };
+}
+
+
+/**
+ * Retorna o estado da integração Binance.
+ *
+ * Esta função NÃO envia dinheiro.
+ */
+export async function getBinanceSettings(
+  userId: string,
+) {
+  await assertNotBlocked(userId);
+
+  const settings =
+    await getBinanceSettingsInternal();
+
+  return {
+    enabled: settings.enabled,
+    automaticWithdrawals:
+      settings.automatic_withdrawals,
+    asset: settings.asset,
+    network: settings.network,
+    apiConfigured:
+      settings.api_configured,
+  };
+}
+
+
+/**
+ * Verifica se a integração está pronta para
+ * processar um saque automático.
+ *
+ * Esta função apenas verifica configuração.
+ * Não envia USDT.
+ */
+async function assertBinanceWithdrawalReady() {
+  const settings =
+    await getBinanceSettingsInternal();
+
+  if (!settings.enabled) {
+    throw new Error(
+      "A integração Binance está desativada.",
+    );
+  }
+
+  if (!settings.automatic_withdrawals) {
+    throw new Error(
+      "Os saques automáticos Binance estão desativados.",
+    );
+  }
+
+  if (settings.asset !== "USDT") {
+    throw new Error(
+      "O ativo Binance deve ser USDT.",
+    );
+  }
+
+  if (settings.network !== "TRC20") {
+    throw new Error(
+      "A rede Binance deve ser TRC20.",
+    );
+  }
+
+  /*
+   * A API ainda não está ligada nesta etapa.
+   *
+   * Não usamos API Key nem Secret aqui.
+   */
+  if (!settings.api_configured) {
+    throw new Error(
+      "A integração Binance ainda não foi configurada.",
+    );
+  }
+
+  return settings;
+}
