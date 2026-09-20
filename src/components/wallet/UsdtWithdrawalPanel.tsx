@@ -13,9 +13,12 @@ import {
 type UsdtSettings = {
   network: string;
   symbol: string;
-  withdrawal_enabled: boolean;
-  usdt_mzn_rate: number;
-  min_withdrawal_usdt: number;
+  depositAddress: string;
+  depositEnabled: boolean;
+  withdrawalEnabled: boolean;
+  usdtMznRate: number;
+  minDepositUsdt: number;
+  minWithdrawalUsdt: number;
 };
 
 export function UsdtWithdrawalPanel() {
