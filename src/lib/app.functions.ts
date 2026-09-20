@@ -328,3 +328,22 @@ export const binanceSettingsFn = createServerFn({ method: "GET" })
 
     return ops.getBinanceSettings(context.userId);
   });
+
+export const updateBinanceSettingsFn = createServerFn({
+  method: "POST",
+})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      enabled: boolean;
+      automaticWithdrawals: boolean;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.updateBinanceSettings(
+      context.userId,
+      data,
+    );
+  });
