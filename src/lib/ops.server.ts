@@ -1617,17 +1617,21 @@ export async function requestUsdtWithdrawal(
     );
   }
 
-  if (
-    !Number.isFinite(settings.usdt_mzn_rate) ||
-    settings.usdt_mzn_rate <= 0
-  ) {
+  if (settings.symbol !== "USDT") {
+    throw new Error(
+      "O ativo de saque não está configurado como USDT.",
+    );
+  }
+
+  const rate = Number(settings.usdt_mzn_rate);
+
+  if (!Number.isFinite(rate) || rate <= 0) {
     throw new Error(
       "A taxa USDT/MZN ainda não foi configurada.",
     );
   }
 
-  const address =
-    normalizeTronAddress(destinationAddress);
+  const address = normalizeTronAddress(destinationAddress);
 
   if (!isValidTronAddress(address)) {
     throw new Error(
@@ -1637,50 +1641,39 @@ export async function requestUsdtWithdrawal(
 
   const amount = Number(amountMzn);
 
-  if (
-    !Number.isFinite(amount) ||
-    amount <= 0
-  ) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error(
       "Informe um valor válido em MZN.",
     );
   }
 
   const amountUsdt = Number(
-    (amount / settings.usdt_mzn_rate).toFixed(6),
+    (amount / rate).toFixed(6),
   );
 
   if (
-    amountUsdt < settings.min_withdrawal_usdt
+    amountUsdt < Number(settings.min_withdrawal_usdt)
   ) {
     throw new Error(
       `O saque mínimo é ${settings.min_withdrawal_usdt} USDT.`,
     );
   }
 
-  // Mantemos o saldo MZN como saldo principal.
-  const { data: profile, error: profileError } =
-    await supabaseAdmin
-      .from("profiles")
-      .select("balance")
-      .eq("id", userId)
-      .single();
+  /*
+   * Verifica se o utilizador possui um plano ativo.
+   */
+  const activePlan = await getActivePlan(userId);
 
-  if (profileError) {
+  if (!activePlan) {
     throw new Error(
-      `Não foi possível consultar o saldo: ${profileError.message}`,
+      "É necessário ter um plano ativo para solicitar um saque.",
     );
   }
 
-  const balance = Number(profile?.balance ?? 0);
-
-  if (balance < amount) {
-    throw new Error(
-      "Saldo MZN insuficiente.",
-    );
-  }
-
-  const { data: pending, error: pendingError } =
+  /*
+   * Verifica se já existe outro saque USDT em processamento.
+   */
+  const { data: pendingUsdt, error: pendingUsdtError } =
     await supabaseAdmin
       .from("usdt_withdrawals")
       .select("id")
@@ -1692,61 +1685,135 @@ export async function requestUsdtWithdrawal(
       ])
       .limit(1);
 
-  if (pendingError) {
+  if (pendingUsdtError) {
     throw new Error(
-      `Não foi possível verificar saques pendentes: ${pendingError.message}`,
+      `Não foi possível verificar saques USDT pendentes: ${pendingUsdtError.message}`,
     );
   }
 
-  if (pending && pending.length > 0) {
+  if (pendingUsdt && pendingUsdt.length > 0) {
     throw new Error(
-      "Já existe um saque USDT em processamento.",
+      "Você já possui um saque USDT em processamento.",
     );
   }
 
-  const { data: withdrawal, error } =
+  /*
+   * Impede que o utilizador tenha simultaneamente
+   * um saque MZN pendente e um saque USDT.
+   */
+  const { data: pendingMzn, error: pendingMznError } =
     await supabaseAdmin
-      .from("usdt_withdrawals")
-      .insert({
-        user_id: userId,
-        network: "TRC20",
-        token: "USDT",
-        destination_address: address,
-        amount_mzn: amount,
-        exchange_rate: settings.usdt_mzn_rate,
-        amount_usdt: amountUsdt,
-        fee_mzn: 0,
-        net_amount_mzn: amount,
-        status: "PENDING",
-      })
+      .from("withdrawals")
       .select("id")
-      .single();
+      .eq("user_id", userId)
+      .eq("status", "PENDING")
+      .limit(1);
 
-  if (error) {
+  if (pendingMznError) {
     throw new Error(
-      `Não foi possível criar o saque USDT: ${error.message}`,
+      `Não foi possível verificar saques MZN pendentes: ${pendingMznError.message}`,
     );
   }
 
-  await supabaseAdmin
-    .from("usdt_events")
-    .insert({
-      event_type: "WITHDRAWAL_REQUESTED",
-      user_id: userId,
-      withdrawal_id: withdrawal.id,
-      amount_usdt: amountUsdt,
-      amount_mzn: amount,
-      message:
-        `Pedido de saque USDT: ${amountUsdt} USDT`,
-    });
+  if (pendingMzn && pendingMzn.length > 0) {
+    throw new Error(
+      "Você já possui um saque MZN em processamento.",
+    );
+  }
 
-  return {
-    success: true,
-    withdrawalId: withdrawal.id,
-    amountMzn: amount,
-    amountUsdt,
-    exchangeRate: settings.usdt_mzn_rate,
-    destinationAddress: address,
-    status: "PENDING",
-  };
+  /*
+   * Criamos uma referência única para a reserva.
+   */
+  const reservationReference =
+    `USDT-WITHDRAW-${crypto.randomUUID()}`;
+
+  /*
+   * PRIMEIRO reservamos o saldo.
+   *
+   * O valor é debitado do saldo principal através
+   * do mesmo ledger utilizado pelo restante da aplicação.
+   */
+  await ledger(
+    userId,
+    "USDT_WITHDRAWAL_RESERVE",
+    -amount,
+    reservationReference,
+    `Reserva de saque USDT TRC20 — ${amountUsdt} USDT`,
+  );
+
+  try {
+    /*
+     * Criamos o pedido depois de reservar o saldo.
+     */
+    const { data: withdrawal, error: insertError } =
+      await supabaseAdmin
+        .from("usdt_withdrawals")
+        .insert({
+          user_id: userId,
+          network: "TRC20",
+          token: "USDT",
+          destination_address: address,
+          amount_mzn: amount,
+          exchange_rate: rate,
+          amount_usdt: amountUsdt,
+          fee_mzn: 0,
+          net_amount_mzn: amount,
+          status: "PENDING",
+        })
+        .select("id")
+        .single();
+
+    if (insertError) {
+      throw new Error(
+        `Não foi possível criar o saque USDT: ${insertError.message}`,
+      );
+    }
+
+    /*
+     * Registamos o evento.
+     */
+    const { error: eventError } =
+      await supabaseAdmin
+        .from("usdt_events")
+        .insert({
+          event_type: "WITHDRAWAL_REQUESTED",
+          user_id: userId,
+          withdrawal_id: withdrawal.id,
+          amount_usdt: amountUsdt,
+          amount_mzn: amount,
+          message:
+            `Pedido de saque USDT TRC20: ${amountUsdt} USDT`,
+        });
+
+    if (eventError) {
+      console.error(
+        "Erro ao registar evento USDT:",
+        eventError.message,
+      );
+    }
+
+    return {
+      success: true,
+      withdrawalId: withdrawal.id,
+      amountMzn: amount,
+      amountUsdt,
+      exchangeRate: rate,
+      destinationAddress: address,
+      status: "PENDING",
+    };
+  } catch (error) {
+    /*
+     * Se a criação do pedido falhar depois da reserva,
+     * devolvemos o saldo ao utilizador.
+     */
+    await ledger(
+      userId,
+      "USDT_WITHDRAWAL_REFUND",
+      amount,
+      reservationReference,
+      "Devolução da reserva de saque USDT",
+    );
+
+    throw error;
+  }
 }
