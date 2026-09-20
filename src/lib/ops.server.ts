@@ -2026,44 +2026,81 @@ async function binanceSignedGet(
     .update(queryString)
     .digest("hex");
 
-  const response = await fetch(
-    `https://api.binance.com${endpoint}?${queryString}&signature=${signature}`,
-    {
-      method: "GET",
-      headers: {
-        "X-MBX-APIKEY": apiKey,
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    },
-  );
+  const baseUrls = [
+    "https://api.binance.com",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+    "https://api4.binance.com",
+  ];
 
-  const body = await response.json().catch(() => null);
+  let lastError = "erro desconhecido";
 
-  if (!response.ok) {
-    throw new Error(
-      `Binance respondeu HTTP ${response.status}: ${
-        body?.msg || "erro desconhecido"
-      }`,
-    );
+  for (const baseUrl of baseUrls) {
+    try {
+      const response = await fetch(
+        `${baseUrl}${endpoint}?${queryString}&signature=${signature}`,
+        {
+          method: "GET",
+          headers: {
+            "X-MBX-APIKEY": apiKey,
+            Accept: "application/json",
+            "User-Agent": "RENT-INVESTIMENT-Binance-Integration/1.0",
+          },
+          cache: "no-store",
+        },
+      );
+
+      const rawBody = await response.text();
+
+      let body: any = null;
+
+      try {
+        body = rawBody ? JSON.parse(rawBody) : null;
+      } catch {
+        body = null;
+      }
+
+      if (response.ok) {
+        return body;
+      }
+
+      const message =
+        body?.msg ||
+        rawBody?.slice(0, 300) ||
+        `HTTP ${response.status}`;
+
+      lastError = `HTTP ${response.status} em ${baseUrl}: ${message}`;
+
+      // 403 pode ser bloqueio WAF neste endpoint/base.
+      // Tentamos outro endpoint da Binance antes de desistir.
+      if (response.status === 403) {
+        continue;
+      }
+
+      throw new Error(lastError);
+    } catch (error) {
+      lastError =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      // Continua tentando os outros endpoints somente
+      // quando o problema for de conexão/WAF.
+      if (
+        lastError.includes("HTTP 403") ||
+        lastError.includes("fetch failed") ||
+        lastError.includes("network") ||
+        lastError.includes("ECONN")
+      ) {
+        continue;
+      }
+
+      throw new Error(lastError);
+    }
   }
 
-  return body;
-}
-
-export async function testBinanceConnection(
-  adminUserId: string,
-) {
-  await assertAdmin(adminUserId);
-
-  const result = await binanceSignedGet(
-    "/sapi/v1/account/apiRestrictions",
+  throw new Error(
+    `Binance bloqueou ou recusou a conexão em todos os endpoints disponíveis. Último erro: ${lastError}`,
   );
-
-  return {
-    success: true,
-    enableReading: Boolean(result?.enableReading),
-    enableWithdrawals: Boolean(result?.enableWithdrawals),
-    ipRestrict: Boolean(result?.ipRestrict),
-  };
 }
