@@ -1936,3 +1936,46 @@ async function assertBinanceWithdrawalReady() {
 
   return settings;
 }
+
+// ============================================================
+// BINANCE USDT TRC20 — ADMIN CONFIG
+// ============================================================
+
+export async function updateBinanceSettings(
+  adminUserId: string,
+  data: {
+    enabled: boolean;
+    automaticWithdrawals: boolean;
+  },
+) {
+  await assertAdmin(adminUserId);
+
+  const { data: updated, error } = await supabaseAdmin
+    .from("binance_settings")
+    .update({
+      enabled: Boolean(data.enabled),
+      automatic_withdrawals: Boolean(data.automaticWithdrawals),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", true)
+    .select(
+      "enabled,automatic_withdrawals,asset,network,api_configured",
+    )
+    .single();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível atualizar a configuração Binance: ${error.message}`,
+    );
+  }
+
+  return {
+    enabled: Boolean(updated.enabled),
+    automaticWithdrawals: Boolean(
+      updated.automatic_withdrawals,
+    ),
+    asset: String(updated.asset ?? "USDT"),
+    network: String(updated.network ?? "TRC20"),
+    apiConfigured: Boolean(updated.api_configured),
+  };
+}
