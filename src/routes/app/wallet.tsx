@@ -134,6 +134,8 @@ function WalletPage() {
   {/* USDT TRC20 */}
   <UsdtTrc20Panel />
 
+  <UsdtWithdrawalPanel />
+
   <div className="surface-card space-y-3 p-4">
     <h2 className="text-sm font-semibold">Pedir saque</h2>
     <p className="text-xs text-muted-foreground">
