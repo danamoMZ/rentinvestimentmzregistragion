@@ -2152,7 +2152,6 @@ export async function testBinanceConnection(
       ipRestrict: false,
 
       message:
-        "A Binance está acessível, mas a API privada foi recusada.",
     };
   }
 }
