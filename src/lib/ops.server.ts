@@ -1995,3 +1995,75 @@ function getBinanceApiCredentials() {
     apiSecret,
   };
 }
+
+// ============================================================
+// BINANCE — TESTE DE CONEXÃO E PERMISSÕES
+// ============================================================
+
+async function binanceSignedGet(
+  endpoint: string,
+  params: Record<string, string | number> = {},
+) {
+  const { apiKey, apiSecret } = getBinanceApiCredentials();
+
+  const { createHmac } = await import("node:crypto");
+
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    query.set(key, String(value));
+  }
+
+  query.set("timestamp", String(Date.now()));
+  query.set("recvWindow", "5000");
+
+  const queryString = query.toString();
+
+  const signature = createHmac(
+    "sha256",
+    apiSecret,
+  )
+    .update(queryString)
+    .digest("hex");
+
+  const response = await fetch(
+    `https://api.binance.com${endpoint}?${queryString}&signature=${signature}`,
+    {
+      method: "GET",
+      headers: {
+        "X-MBX-APIKEY": apiKey,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    },
+  );
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      `Binance respondeu HTTP ${response.status}: ${
+        body?.msg || "erro desconhecido"
+      }`,
+    );
+  }
+
+  return body;
+}
+
+export async function testBinanceConnection(
+  adminUserId: string,
+) {
+  await assertAdmin(adminUserId);
+
+  const result = await binanceSignedGet(
+    "/sapi/v1/account/apiRestrictions",
+  );
+
+  return {
+    success: true,
+    enableReading: Boolean(result?.enableReading),
+    enableWithdrawals: Boolean(result?.enableWithdrawals),
+    ipRestrict: Boolean(result?.ipRestrict),
+  };
+}
