@@ -347,3 +347,13 @@ export const updateBinanceSettingsFn = createServerFn({
       data,
     );
   });
+
+export const testBinanceConnectionFn = createServerFn({
+  method: "POST",
+})
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.testBinanceConnection(context.userId);
+  });
