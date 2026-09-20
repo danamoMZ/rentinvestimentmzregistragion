@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { binanceSettingsFn } from "@/lib/app.functions";
+import {
+  binanceSettingsFn,
+  updateBinanceSettingsFn,
+} from "@/lib/app.functions";
+import { Button } from "@/components/ui/button";
 
 type BinanceSettings = {
   enabled: boolean;
@@ -12,7 +16,10 @@ type BinanceSettings = {
 
 export function BinanceUsdtSettings() {
   const [settings, setSettings] = useState<BinanceSettings | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [automaticWithdrawals, setAutomaticWithdrawals] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   async function loadSettings() {
     try {
@@ -21,8 +28,11 @@ export function BinanceUsdtSettings() {
       const result = await binanceSettingsFn();
 
       setSettings(result);
+      setEnabled(result.enabled);
+      setAutomaticWithdrawals(result.automaticWithdrawals);
     } catch (error) {
       console.error(error);
+
       toast.error(
         error instanceof Error
           ? error.message
@@ -36,6 +46,36 @@ export function BinanceUsdtSettings() {
   useEffect(() => {
     void loadSettings();
   }, []);
+
+  async function saveSettings() {
+    try {
+      setSaving(true);
+
+      const result = await updateBinanceSettingsFn({
+        data: {
+          enabled,
+          automaticWithdrawals,
+        },
+      });
+
+      setSettings(result);
+
+      setEnabled(result.enabled);
+      setAutomaticWithdrawals(result.automaticWithdrawals);
+
+      toast.success("Configuração Binance atualizada.");
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível guardar a configuração.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -53,45 +93,32 @@ export function BinanceUsdtSettings() {
         <p className="text-sm text-muted-foreground">
           Não foi possível carregar a configuração Binance.
         </p>
+
+        <Button
+          type="button"
+          className="mt-4"
+          onClick={() => void loadSettings()}
+        >
+          Tentar novamente
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="surface-card space-y-5 rounded-2xl p-5">
+    <div className="surface-card space-y-6 rounded-2xl p-5">
       <div>
         <h2 className="text-lg font-semibold">
           Binance — USDT TRC20
         </h2>
 
         <p className="mt-1 text-sm text-muted-foreground">
-          Estado da integração utilizada para pagamentos e saques USDT.
+          Configuração da integração Binance utilizada para a operação
+          USDT através da rede TRC20.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">
-            Integração Binance
-          </p>
-
-          <p className="mt-1 font-semibold">
-            {settings.enabled ? "Ativada" : "Desativada"}
-          </p>
-        </div>
-
-        <div className="rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">
-            Saques automáticos
-          </p>
-
-          <p className="mt-1 font-semibold">
-            {settings.automaticWithdrawals
-              ? "Ativados"
-              : "Desativados"}
-          </p>
-        </div>
-
+      <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border p-4">
           <p className="text-xs text-muted-foreground">
             Ativo
@@ -111,38 +138,114 @@ export function BinanceUsdtSettings() {
             {settings.network}
           </p>
         </div>
-      </div>
 
-      <div className="rounded-xl border p-4">
-        <p className="text-xs text-muted-foreground">
-          API Binance
-        </p>
-
-        <p className="mt-1 font-semibold">
-          {settings.apiConfigured
-            ? "Configurada"
-            : "Ainda não configurada"}
-        </p>
-
-        {!settings.apiConfigured && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            As credenciais serão configuradas de forma segura no
-            ambiente do servidor. Nunca coloque a Secret Key no GitHub.
+        <div className="rounded-xl border p-4">
+          <p className="text-xs text-muted-foreground">
+            API
           </p>
-        )}
+
+          <p className="mt-1 font-semibold">
+            {settings.apiConfigured
+              ? "Configurada"
+              : "Não configurada"}
+          </p>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+          <div>
+            <p className="font-medium">
+              Ativar integração Binance
+            </p>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Permite que o sistema utilize a integração Binance.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            onClick={() => setEnabled((value) => !value)}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+              enabled
+                ? "bg-primary"
+                : "bg-muted"
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
+                enabled
+                  ? "left-6"
+                  : "left-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+          <div>
+            <p className="font-medium">
+              Saques automáticos
+            </p>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Permite que os pedidos de saque USDT sejam enviados
+              automaticamente através da Binance quando a integração
+              estiver pronta.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={automaticWithdrawals}
+            disabled={!enabled}
+            onClick={() =>
+              setAutomaticWithdrawals((value) => !value)
+            }
+            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+              automaticWithdrawals
+                ? "bg-primary"
+                : "bg-muted"
+            } ${
+              !enabled
+                ? "cursor-not-allowed opacity-50"
+                : ""
+            }`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
+                automaticWithdrawals
+                  ? "left-6"
+                  : "left-1"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
         <p className="font-medium">
-          Integração em preparação
+          Segurança
         </p>
 
-        <p className="mt-1 text-muted-foreground">
-          O envio automático de USDT ainda não está sendo executado.
-          Primeiro vamos configurar e testar a comunicação com a
-          Binance de forma segura.
+        <p className="mt-1 text-sm text-muted-foreground">
+          Nunca coloque a API Secret da Binance neste arquivo ou no
+          GitHub. As credenciais deverão ficar somente nas variáveis
+          seguras do servidor.
         </p>
       </div>
+
+      <Button
+        type="button"
+        disabled={saving}
+        onClick={() => void saveSettings()}
+      >
+        {saving ? "A guardar..." : "Guardar configuração"}
+      </Button>
     </div>
   );
-            }
+}
