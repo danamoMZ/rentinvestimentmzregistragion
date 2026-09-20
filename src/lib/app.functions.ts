@@ -269,3 +269,50 @@ export const rouletteFeedFn = createServerFn({ method: "POST" })
     const ops = await import("@/lib/ops.server");
     return ops.rouletteFeed();
   });
+
+// ============================================================
+// USDT TRC20
+// ============================================================
+
+export const usdtSettingsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+    return ops.getUsdtSettings(context.userId);
+  });
+
+export const createUsdtDepositFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      txid: string;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.createUsdtDeposit(
+      context.userId,
+      data.txid,
+    );
+  });
+
+export const requestUsdtWithdrawalFn = createServerFn({
+  method: "POST",
+})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      amountMzn: number;
+      destinationAddress: string;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.requestUsdtWithdrawal(
+      context.userId,
+      data.amountMzn,
+      data.destinationAddress,
+    );
+  });
