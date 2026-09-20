@@ -1938,65 +1938,6 @@ async function assertBinanceWithdrawalReady() {
 }
 
 // ============================================================
-// BINANCE USDT TRC20 — ADMIN CONFIG
-// ============================================================
-
-export async function updateBinanceSettings(
-  adminUserId: string,
-  data: {
-    enabled: boolean;
-    automaticWithdrawals: boolean;
-  },
-) {
-  await assertAdmin(adminUserId);
-
-  const { data: updated, error } = await supabaseAdmin
-    .from("binance_settings")
-    .update({
-      enabled: Boolean(data.enabled),
-      automatic_withdrawals: Boolean(data.automaticWithdrawals),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", true)
-    .select(
-      "enabled,automatic_withdrawals,asset,network,api_configured",
-    )
-    .single();
-
-  if (error) {
-    throw new Error(
-      `Não foi possível atualizar a configuração Binance: ${error.message}`,
-    );
-  }
-
-  return {
-    enabled: Boolean(updated.enabled),
-    automaticWithdrawals: Boolean(
-      updated.automatic_withdrawals,
-    ),
-    asset: String(updated.asset ?? "USDT"),
-    network: String(updated.network ?? "TRC20"),
-    apiConfigured: Boolean(updated.api_configured),
-  };
-}
-
-function getBinanceApiCredentials() {
-  const apiKey = process.env.BINANCE_API_KEY?.trim() || "";
-  const apiSecret = process.env.BINANCE_API_SECRET?.trim() || "";
-
-  if (!apiKey || !apiSecret) {
-    throw new Error(
-      "As credenciais da API Binance ainda não estão configuradas no servidor.",
-    );
-  }
-
-  return {
-    apiKey,
-    apiSecret,
-  };
-}
-
-// ============================================================
 // BINANCE — TESTE DE CONEXÃO E PERMISSÕES
 // ============================================================
 
@@ -2026,83 +1967,41 @@ async function binanceSignedGet(
     .update(queryString)
     .digest("hex");
 
-  const baseUrls = [
-    "https://api.binance.com",
-    "https://api1.binance.com",
-    "https://api2.binance.com",
-    "https://api3.binance.com",
-    "https://api4.binance.com",
-  ];
+  const response = await fetch(
+    `https://api.binance.com${endpoint}?${queryString}&signature=${signature}`,
+    {
+      method: "GET",
+      headers: {
+        "X-MBX-APIKEY": apiKey,
+        Accept: "application/json",
+        "User-Agent": "RENT-INVESTIMENT-Binance-Integration/1.0",
+      },
+      cache: "no-store",
+    },
+  );
 
-  let lastError = "erro desconhecido";
+  const rawBody = await response.text();
 
-  for (const baseUrl of baseUrls) {
-    try {
-      const response = await fetch(
-        `${baseUrl}${endpoint}?${queryString}&signature=${signature}`,
-        {
-          method: "GET",
-          headers: {
-            "X-MBX-APIKEY": apiKey,
-            Accept: "application/json",
-            "User-Agent": "RENT-INVESTIMENT-Binance-Integration/1.0",
-          },
-          cache: "no-store",
-        },
-      );
+  let body: any = null;
 
-      const rawBody = await response.text();
-
-      let body: any = null;
-
-      try {
-        body = rawBody ? JSON.parse(rawBody) : null;
-      } catch {
-        body = null;
-      }
-
-      if (response.ok) {
-        return body;
-      }
-
-      const message =
-        body?.msg ||
-        rawBody?.slice(0, 300) ||
-        `HTTP ${response.status}`;
-
-      lastError = `HTTP ${response.status} em ${baseUrl}: ${message}`;
-
-      // 403 pode ser bloqueio WAF neste endpoint/base.
-      // Tentamos outro endpoint da Binance antes de desistir.
-      if (response.status === 403) {
-        continue;
-      }
-
-      throw new Error(lastError);
-    } catch (error) {
-      lastError =
-        error instanceof Error
-          ? error.message
-          : String(error);
-
-      // Continua tentando os outros endpoints somente
-      // quando o problema for de conexão/WAF.
-      if (
-        lastError.includes("HTTP 403") ||
-        lastError.includes("fetch failed") ||
-        lastError.includes("network") ||
-        lastError.includes("ECONN")
-      ) {
-        continue;
-      }
-
-      throw new Error(lastError);
-    }
+  try {
+    body = rawBody ? JSON.parse(rawBody) : null;
+  } catch {
+    body = null;
   }
 
-  throw new Error(
-    `Binance bloqueou ou recusou a conexão em todos os endpoints disponíveis. Último erro: ${lastError}`,
-  );
+  if (!response.ok) {
+    const message =
+      body?.msg ||
+      rawBody?.slice(0, 300) ||
+      `HTTP ${response.status}`;
+
+    throw new Error(
+      `Binance respondeu HTTP ${response.status}: ${message}`,
+    );
+  }
+
+  return body;
 }
 
 export async function testBinanceConnection(
@@ -2111,8 +2010,8 @@ export async function testBinanceConnection(
   await assertAdmin(adminUserId);
 
   // ==========================================================
-  // TESTE 1 — CONEXÃO PÚBLICA COM A BINANCE
-  // Não usa API Key nem Secret.
+  // TESTE 1 — CONEXÃO PÚBLICA
+  // Não utiliza API Key nem Secret.
   // ==========================================================
 
   let publicTest: {
@@ -2127,7 +2026,7 @@ export async function testBinanceConnection(
 
   try {
     const response = await fetch(
-     "https://api-gcp.binance.com/api/v3/ping"
+      "https://api-gcp.binance.com/api/v3/ping",
       {
         method: "GET",
         headers: {
@@ -2162,7 +2061,7 @@ export async function testBinanceConnection(
 
   // ==========================================================
   // TESTE 2 — API KEY + ASSINATURA
-  // Só fazemos este teste se a conexão pública funcionar.
+  // Só executa se o teste público funcionar.
   // ==========================================================
 
   let privateTest: {
@@ -2175,7 +2074,8 @@ export async function testBinanceConnection(
   } = {
     success: false,
     status: null,
-    message: "Não testado porque a conexão pública falhou.",
+    message:
+      "Não testado porque a conexão pública falhou.",
   };
 
   if (publicTest.success) {
@@ -2187,9 +2087,12 @@ export async function testBinanceConnection(
       privateTest = {
         success: true,
         status: 200,
-        message: "API Key e assinatura aceites pela Binance.",
+        message:
+          "API Key e assinatura aceites pela Binance.",
         enableReading: Boolean(result?.enableReading),
-        enableWithdrawals: Boolean(result?.enableWithdrawals),
+        enableWithdrawals: Boolean(
+          result?.enableWithdrawals,
+        ),
         ipRestrict: Boolean(result?.ipRestrict),
       };
     } catch (error) {
@@ -2210,22 +2113,22 @@ export async function testBinanceConnection(
     }
   }
 
-  // ==========================================================
-  // RESULTADO
-  // ==========================================================
-
   return {
-    success: publicTest.success && privateTest.success,
+    success:
+      publicTest.success && privateTest.success,
 
     publicConnection: publicTest,
 
     privateConnection: privateTest,
 
-    // Compatibilidade com o painel existente
-    enableReading: privateTest.enableReading ?? false,
+    enableReading:
+      privateTest.enableReading ?? false,
+
     enableWithdrawals:
       privateTest.enableWithdrawals ?? false,
-    ipRestrict: privateTest.ipRestrict ?? false,
+
+    ipRestrict:
+      privateTest.ipRestrict ?? false,
 
     message: privateTest.success
       ? "Conexão pública e API privada funcionando."
