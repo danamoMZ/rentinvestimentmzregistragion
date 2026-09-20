@@ -316,3 +316,15 @@ export const requestUsdtWithdrawalFn = createServerFn({
       data.destinationAddress,
     );
   });
+
+// ============================================================
+// BINANCE USDT TRC20
+// ============================================================
+
+export const binanceSettingsFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.getBinanceSettings(context.userId);
+  });
