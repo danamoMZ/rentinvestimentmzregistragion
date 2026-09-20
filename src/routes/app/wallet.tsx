@@ -116,51 +116,70 @@ function WalletPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Carteira</h1>
-        <p className="text-sm text-muted-foreground">Saldo, saques e histórico completo.</p>
-      </div>
+  <div>
+    <h1 className="text-2xl font-bold tracking-tight">Carteira</h1>
+    <p className="text-sm text-muted-foreground">
+      Saldo, saques e histórico completo.
+    </p>
+  </div>
 
-      <div className="surface-card bg-[image:var(--gradient-soft)] p-5">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Saldo disponível</p>
-        <p className="text-3xl font-extrabold">{MZN(profile?.balance)}</p>
-      </div>
+  <div className="surface-card bg-[image:var(--gradient-soft)] p-5">
+    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+      Saldo disponível
+    </p>
+    <p className="text-3xl font-extrabold">{MZN(profile?.balance)}</p>
+  </div>
 
-      <div className="surface-card space-y-3 p-4">
-        <h2 className="text-sm font-semibold">Pedir saque</h2>
-        <p className="text-xs text-muted-foreground">
-          Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 10% · Requer plano ativo.
-        </p>
-        <div className="space-y-1.5">
-          <Label htmlFor="amount">Valor (MZN)</Label>
-          <Input
-            id="amount"
-            type="number"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="1000"
-          />
+  {/* USDT TRC20 */}
+  <UsdtTrc20Panel />
+
+  <div className="surface-card space-y-3 p-4">
+    <h2 className="text-sm font-semibold">Pedir saque</h2>
+    <p className="text-xs text-muted-foreground">
+      Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 10% · Requer plano ativo.
+    </p>
+
+    <div className="space-y-1.5">
+      <Label htmlFor="amount">Valor (MZN)</Label>
+      <Input
+        id="amount"
+        type="number"
+        inputMode="decimal"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="1000"
+      />
+    </div>
+
+    {value > 0 && (
+      <div className="rounded-lg border border-border bg-secondary p-3 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Taxa (10%)</span>
+          <span className="font-semibold">{MZN(fee)}</span>
         </div>
-        {value > 0 && (
-          <div className="rounded-lg border border-border bg-secondary p-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Taxa (10%)</span>
-              <span className="font-semibold">{MZN(fee)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Vai receber</span>
-              <span className="font-bold text-success">{MZN(value - fee)}</span>
-            </div>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Número de recebimento: <span className="font-semibold">{profile?.wallet_number || profile?.phone || "—"}</span>
-        </p>
-        <Button className="w-full" onClick={submit} disabled={busy || value <= 0}>
-          {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Pedir saque
-        </Button>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Vai receber</span>
+          <span className="font-bold text-success">{MZN(value - fee)}</span>
+        </div>
       </div>
+    )}
+
+    <p className="text-xs text-muted-foreground">
+      Número de recebimento:{" "}
+      <span className="font-semibold">
+        {profile?.wallet_number || profile?.phone || "—"}
+      </span>
+    </p>
+
+    <Button
+      className="w-full"
+      onClick={submit}
+      disabled={busy || value <= 0}
+    >
+      {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
+      Pedir saque
+    </Button>
+  </div>
 
       <div className="surface-card space-y-3 p-4">
         <div className="flex items-center gap-2">
