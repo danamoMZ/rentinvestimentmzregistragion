@@ -2104,3 +2104,21 @@ async function binanceSignedGet(
     `Binance bloqueou ou recusou a conexão em todos os endpoints disponíveis. Último erro: ${lastError}`,
   );
 }
+
+export async function testBinanceConnection(
+  adminUserId: string,
+) {
+  await assertAdmin(adminUserId);
+
+  const result = await binanceSignedGet(
+    "/sapi/v1/account/apiRestrictions",
+  );
+
+  return {
+    success: true,
+    message: "Conexão Binance estabelecida.",
+    enableReading: Boolean(result?.enableReading),
+    enableWithdrawals: Boolean(result?.enableWithdrawals),
+    ipRestrict: Boolean(result?.ipRestrict),
+  };
+}
