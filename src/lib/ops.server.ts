@@ -2135,23 +2135,21 @@ export async function testBinanceConnection(
     const statusMatch = message.match(/HTTP (\d+)/);
 
     return {
-      success: false,
+  success: false,
 
-      publicConnection: publicTest,
+  publicConnection: publicTest,
 
-      privateConnection: {
-        success: false,
-        status: statusMatch
-          ? Number(statusMatch[1])
-          : null,
-        message,
-      },
+  privateConnection: {
+    success: false,
+    status: statusMatch
+      ? Number(statusMatch[1])
+      : null,
+    message,
+  },
 
-      enableReading: false,
-      enableWithdrawals: false,
-      ipRestrict: false,
+  enableReading: false,
+  enableWithdrawals: false,
+  ipRestrict: false,
 
-      message:
-    };
-  }
-}
+  message,
+};
