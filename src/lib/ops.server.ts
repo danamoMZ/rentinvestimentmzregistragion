@@ -2007,11 +2007,9 @@ async function binanceSignedGet(
 export async function testBinanceConnection(
   adminUserId: string,
 ) {
-  await assertAdmin(adminUserId);
-
   // ==========================================================
-  // TESTE 1 — CONEXÃO PÚBLICA
-  // Não utiliza API Key nem Secret.
+  // TESTE 1 — CONEXÃO PÚBLICA COM A BINANCE
+  // Não utiliza API Key, Secret ou Supabase Service Role.
   // ==========================================================
 
   let publicTest: {
@@ -2060,31 +2058,49 @@ export async function testBinanceConnection(
   }
 
   // ==========================================================
-  // TESTE 2 — API KEY + ASSINATURA
-  // Só executa se o teste público funcionar.
+  // Se a conexão pública falhou, terminamos aqui.
+  // Não precisamos do Supabase para esse diagnóstico.
   // ==========================================================
 
-  let privateTest: {
-    success: boolean;
-    status: number | null;
-    message: string;
-    enableReading?: boolean;
-    enableWithdrawals?: boolean;
-    ipRestrict?: boolean;
-  } = {
-    success: false,
-    status: null,
-    message:
-      "Não testado porque a conexão pública falhou.",
-  };
+  if (!publicTest.success) {
+    return {
+      success: false,
+      publicConnection: publicTest,
+      privateConnection: {
+        success: false,
+        status: null,
+        message:
+          "Teste privado não executado porque a conexão pública falhou.",
+      },
+      enableReading: false,
+      enableWithdrawals: false,
+      ipRestrict: false,
+      message:
+        "A conexão pública com a Binance foi bloqueada ou recusada.",
+    };
+  }
 
-  if (publicTest.success) {
-    try {
-      const result = await binanceSignedGet(
-        "/sapi/v1/account/apiRestrictions",
-      );
+  // ==========================================================
+  // TESTE 2 — SOMENTE AGORA verificamos o administrador.
+  // ==========================================================
 
-      privateTest = {
+  await assertAdmin(adminUserId);
+
+  // ==========================================================
+  // TESTE 3 — API KEY + ASSINATURA
+  // ==========================================================
+
+  try {
+    const result = await binanceSignedGet(
+      "/sapi/v1/account/apiRestrictions",
+    );
+
+    return {
+      success: true,
+
+      publicConnection: publicTest,
+
+      privateConnection: {
         success: true,
         status: 200,
         message:
@@ -2094,46 +2110,44 @@ export async function testBinanceConnection(
           result?.enableWithdrawals,
         ),
         ipRestrict: Boolean(result?.ipRestrict),
-      };
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Falha no teste da API privada.";
+      },
 
-      const statusMatch = message.match(/HTTP (\d+)/);
+      enableReading: Boolean(result?.enableReading),
+      enableWithdrawals: Boolean(
+        result?.enableWithdrawals,
+      ),
+      ipRestrict: Boolean(result?.ipRestrict),
 
-      privateTest = {
+      message:
+        "Conexão pública e API privada funcionando.",
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Falha no teste da API privada.";
+
+    const statusMatch = message.match(/HTTP (\d+)/);
+
+    return {
+      success: false,
+
+      publicConnection: publicTest,
+
+      privateConnection: {
         success: false,
         status: statusMatch
           ? Number(statusMatch[1])
           : null,
         message,
-      };
-    }
+      },
+
+      enableReading: false,
+      enableWithdrawals: false,
+      ipRestrict: false,
+
+      message:
+        "A Binance está acessível, mas a API privada foi recusada.",
+    };
   }
-
-  return {
-    success:
-      publicTest.success && privateTest.success,
-
-    publicConnection: publicTest,
-
-    privateConnection: privateTest,
-
-    enableReading:
-      privateTest.enableReading ?? false,
-
-    enableWithdrawals:
-      privateTest.enableWithdrawals ?? false,
-
-    ipRestrict:
-      privateTest.ipRestrict ?? false,
-
-    message: privateTest.success
-      ? "Conexão pública e API privada funcionando."
-      : publicTest.success
-        ? "A Binance está acessível, mas a API privada foi recusada."
-        : "A conexão pública com a Binance foi bloqueada ou recusada.",
-  };
 }
