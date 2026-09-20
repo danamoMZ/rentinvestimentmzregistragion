@@ -1979,3 +1979,19 @@ export async function updateBinanceSettings(
     apiConfigured: Boolean(updated.api_configured),
   };
 }
+
+function getBinanceApiCredentials() {
+  const apiKey = process.env.BINANCE_API_KEY?.trim() || "";
+  const apiSecret = process.env.BINANCE_API_SECRET?.trim() || "";
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(
+      "As credenciais da API Binance ainda não estão configuradas no servidor.",
+    );
+  }
+
+  return {
+    apiKey,
+    apiSecret,
+  };
+}
