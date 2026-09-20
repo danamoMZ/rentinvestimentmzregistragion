@@ -2122,10 +2122,15 @@ export async function testBinanceConnection(
         "Conexão pública e API privada funcionando.",
     };
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Falha no teste da API privada.";
+  const message =
+    error instanceof Error
+      ? error.message
+      : "Falha no teste da API privada.";
+
+  console.error(
+    "[BINANCE PRIVATE TEST]",
+    message,
+  );
 
     const statusMatch = message.match(/HTTP (\d+)/);
 
