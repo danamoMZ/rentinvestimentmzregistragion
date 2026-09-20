@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   binanceSettingsFn,
   updateBinanceSettingsFn,
+  testBinanceConnectionFn,
 } from "@/lib/app.functions";
 import { Button } from "@/components/ui/button";
 
@@ -14,12 +15,26 @@ type BinanceSettings = {
   apiConfigured: boolean;
 };
 
+type BinanceConnectionResult = {
+  success: boolean;
+  message: string;
+  enableReading?: boolean;
+  enableWithdrawals?: boolean;
+  ipRestrict?: boolean;
+};
+
 export function BinanceUsdtSettings() {
   const [settings, setSettings] = useState<BinanceSettings | null>(null);
+
   const [enabled, setEnabled] = useState(false);
   const [automaticWithdrawals, setAutomaticWithdrawals] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const [connectionResult, setConnectionResult] =
+    useState<BinanceConnectionResult | null>(null);
 
   async function loadSettings() {
     try {
@@ -59,7 +74,6 @@ export function BinanceUsdtSettings() {
       });
 
       setSettings(result);
-
       setEnabled(result.enabled);
       setAutomaticWithdrawals(result.automaticWithdrawals);
 
@@ -77,9 +91,61 @@ export function BinanceUsdtSettings() {
     }
   }
 
+  async function testConnection() {
+    try {
+      setTesting(true);
+      setConnectionResult(null);
+
+      const result = await testBinanceConnectionFn();
+
+      const connection: BinanceConnectionResult = {
+        success: Boolean(result.success),
+        message: String(
+          result.message ?? "Conexão Binance testada com sucesso.",
+        ),
+        enableReading:
+          typeof result.enableReading === "boolean"
+            ? result.enableReading
+            : undefined,
+        enableWithdrawals:
+          typeof result.enableWithdrawals === "boolean"
+            ? result.enableWithdrawals
+            : undefined,
+        ipRestrict:
+          typeof result.ipRestrict === "boolean"
+            ? result.ipRestrict
+            : undefined,
+      };
+
+      setConnectionResult(connection);
+
+      if (connection.success) {
+        toast.success("Conexão com a Binance funcionando.");
+      } else {
+        toast.error(connection.message);
+      }
+    } catch (error) {
+      console.error(error);
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível testar a conexão com a Binance.";
+
+      setConnectionResult({
+        success: false,
+        message,
+      });
+
+      toast.error(message);
+    } finally {
+      setTesting(false);
+    }
+  }
+
   if (loading) {
     return (
-      <div className="surface-card rounded-2xl p-5">
+      <div className="surface-card p-5">
         <p className="text-sm text-muted-foreground">
           A carregar configuração Binance...
         </p>
@@ -89,163 +155,207 @@ export function BinanceUsdtSettings() {
 
   if (!settings) {
     return (
-      <div className="surface-card rounded-2xl p-5">
+      <div className="surface-card p-5">
         <p className="text-sm text-muted-foreground">
           Não foi possível carregar a configuração Binance.
         </p>
-
-        <Button
-          type="button"
-          className="mt-4"
-          onClick={() => void loadSettings()}
-        >
-          Tentar novamente
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="surface-card space-y-6 rounded-2xl p-5">
-      <div>
-        <h2 className="text-lg font-semibold">
-          Binance — USDT TRC20
-        </h2>
+    <div className="space-y-4">
+      <div className="surface-card p-5">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold">
+            Binance — USDT TRC20
+          </h2>
 
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configuração da integração Binance utilizada para a operação
-          USDT através da rede TRC20.
-        </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">
-            Ativo
-          </p>
-
-          <p className="mt-1 font-semibold">
-            {settings.asset}
+          <p className="mt-1 text-sm text-muted-foreground">
+            Configuração da integração Binance utilizada para a operação
+            USDT através da rede TRC20.
           </p>
         </div>
 
-        <div className="rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">
-            Rede
-          </p>
-
-          <p className="mt-1 font-semibold">
-            {settings.network}
-          </p>
-        </div>
-
-        <div className="rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">
-            API
-          </p>
-
-          <p className="mt-1 font-semibold">
-            {settings.apiConfigured
-              ? "Configurada"
-              : "Não configurada"}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
-          <div>
-            <p className="font-medium">
-              Ativar integração Binance
-            </p>
-
-            <p className="mt-1 text-xs text-muted-foreground">
-              Permite que o sistema utilize a integração Binance.
-            </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Ativo</p>
+            <p className="mt-1 font-semibold">{settings.asset}</p>
           </div>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            onClick={() => setEnabled((value) => !value)}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
-              enabled
-                ? "bg-primary"
-                : "bg-muted"
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
-                enabled
-                  ? "left-6"
-                  : "left-1"
-              }`}
-            />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
-          <div>
-            <p className="font-medium">
-              Saques automáticos
-            </p>
-
-            <p className="mt-1 text-xs text-muted-foreground">
-              Permite que os pedidos de saque USDT sejam enviados
-              automaticamente através da Binance quando a integração
-              estiver pronta.
-            </p>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Rede</p>
+            <p className="mt-1 font-semibold">{settings.network}</p>
           </div>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={automaticWithdrawals}
-            disabled={!enabled}
-            onClick={() =>
-              setAutomaticWithdrawals((value) => !value)
-            }
-            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
-              automaticWithdrawals
-                ? "bg-primary"
-                : "bg-muted"
-            } ${
-              !enabled
-                ? "cursor-not-allowed opacity-50"
-                : ""
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
-                automaticWithdrawals
-                  ? "left-6"
-                  : "left-1"
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">API</p>
+            <p className="mt-1 font-semibold">
+              {settings.apiConfigured
+                ? "Configurada"
+                : "Não configurada"}
+            </p>
+          </div>
+        </div>
+
+        {/* TESTE DA API */}
+        <div className="mt-5 rounded-lg border p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium">Teste da conexão</p>
+
+              <p className="text-sm text-muted-foreground">
+                Faz uma consulta somente de leitura à Binance. Nenhum
+                levantamento será realizado.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={testConnection}
+              disabled={testing}
+            >
+              {testing
+                ? "A testar..."
+                : "Testar conexão Binance"}
+            </Button>
+          </div>
+
+          {connectionResult && (
+            <div
+              className={`mt-4 rounded-lg border p-4 ${
+                connectionResult.success
+                  ? "border-green-500/30"
+                  : "border-red-500/30"
               }`}
+            >
+              <p className="font-medium">
+                {connectionResult.success
+                  ? "✓ Conexão aprovada"
+                  : "✕ Falha na conexão"}
+              </p>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                {connectionResult.message}
+              </p>
+
+              {connectionResult.success && (
+                <div className="mt-3 grid gap-2 text-sm">
+                  {typeof connectionResult.enableReading ===
+                    "boolean" && (
+                    <div>
+                      Leitura:{" "}
+                      <strong>
+                        {connectionResult.enableReading
+                          ? "Ativada"
+                          : "Desativada"}
+                      </strong>
+                    </div>
+                  )}
+
+                  {typeof connectionResult.enableWithdrawals ===
+                    "boolean" && (
+                    <div>
+                      Levantamentos:{" "}
+                      <strong>
+                        {connectionResult.enableWithdrawals
+                          ? "Ativados"
+                          : "Desativados"}
+                      </strong>
+                    </div>
+                  )}
+
+                  {typeof connectionResult.ipRestrict ===
+                    "boolean" && (
+                    <div>
+                      Restrição por IP:{" "}
+                      <strong>
+                        {connectionResult.ipRestrict
+                          ? "Ativada"
+                          : "Desativada"}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* INTEGRAÇÃO */}
+        <div className="mt-5 rounded-lg border p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">
+                Ativar integração Binance
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                Permite que o sistema utilize a integração Binance.
+              </p>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) =>
+                setEnabled(event.target.checked)
+              }
+              className="h-5 w-5"
             />
-          </button>
+          </div>
+        </div>
+
+        {/* SAQUES AUTOMÁTICOS */}
+        <div className="mt-4 rounded-lg border p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">
+                Saques automáticos
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                Permite que os pedidos de saque USDT sejam enviados
+                automaticamente através da Binance quando a integração
+                estiver pronta.
+              </p>
+            </div>
+
+            <input
+              type="checkbox"
+              checked={automaticWithdrawals}
+              onChange={(event) =>
+                setAutomaticWithdrawals(event.target.checked)
+              }
+              className="h-5 w-5"
+            />
+          </div>
+        </div>
+
+        {/* SEGURANÇA */}
+        <div className="mt-4 rounded-lg border p-4">
+          <p className="font-medium">Segurança</p>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Nunca coloque a API Secret da Binance neste arquivo ou no
+            GitHub. As credenciais deverão ficar somente nas variáveis
+            seguras do servidor.
+          </p>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <Button
+            type="button"
+            onClick={saveSettings}
+            disabled={saving}
+          >
+            {saving
+              ? "A guardar..."
+              : "Guardar configuração"}
+          </Button>
         </div>
       </div>
-
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-        <p className="font-medium">
-          Segurança
-        </p>
-
-        <p className="mt-1 text-sm text-muted-foreground">
-          Nunca coloque a API Secret da Binance neste arquivo ou no
-          GitHub. As credenciais deverão ficar somente nas variáveis
-          seguras do servidor.
-        </p>
-      </div>
-
-      <Button
-        type="button"
-        disabled={saving}
-        onClick={() => void saveSettings()}
-      >
-        {saving ? "A guardar..." : "Guardar configuração"}
-      </Button>
     </div>
   );
 }
