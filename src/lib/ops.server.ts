@@ -1938,6 +1938,29 @@ async function assertBinanceWithdrawalReady() {
 }
 
 // ============================================================
+// BINANCE — CREDENCIAIS DA API
+// ============================================================
+
+function getBinanceApiCredentials() {
+  const apiKey =
+    process.env.BINANCE_API_KEY?.trim() || "";
+
+  const apiSecret =
+    process.env.BINANCE_API_SECRET?.trim() || "";
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(
+      "As credenciais BINANCE_API_KEY e BINANCE_API_SECRET não estão configuradas no servidor.",
+    );
+  }
+
+  return {
+    apiKey,
+    apiSecret,
+  };
+}
+
+// ============================================================
 // BINANCE — TESTE DE CONEXÃO E PERMISSÕES
 // ============================================================
 
