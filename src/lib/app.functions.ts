@@ -83,6 +83,43 @@ export const reviewAffiliateFn = createServerFn({ method: "POST" })
     return ops.reviewAffiliate(context.userId, data.id, data.approve);
   });
 
+// ============================================================
+// CONFIGURAÇÃO USDT TRC20 — ADMIN
+// ============================================================
+
+export const usdtAdminSettingsFn = createServerFn({
+  method: "GET",
+})
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.getUsdtAdminSettings(context.userId);
+  });
+
+export const updateUsdtAdminSettingsFn = createServerFn({
+  method: "POST",
+})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      depositAddress: string;
+      depositEnabled: boolean;
+      withdrawalEnabled: boolean;
+      usdtMznRate: number;
+      minDepositUsdt: number;
+      minWithdrawalUsdt: number;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.updateUsdtAdminSettings(
+      context.userId,
+      data,
+    );
+  });
+
 export const adjustBalanceFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { userId: string; amount: number; reason: string }) => data)
