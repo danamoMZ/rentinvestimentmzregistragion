@@ -2136,20 +2136,14 @@ export async function testBinanceConnection(
 
     return {
   success: false,
-
   publicConnection: publicTest,
-
   privateConnection: {
     success: false,
-    status: statusMatch
-      ? Number(statusMatch[1])
-      : null,
+    status: statusMatch ? Number(statusMatch[1]) : null,
     message,
   },
-
   enableReading: false,
   enableWithdrawals: false,
   ipRestrict: false,
-
   message,
 };
