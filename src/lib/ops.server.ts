@@ -2048,6 +2048,247 @@ async function binanceSignedGet(
 }
 
 // ============================================================
+// BINANCE — POST PRIVADO ASSINADO
+// ============================================================
+
+async function binanceSignedPost(
+  endpoint: string,
+  params: Record<string, string | number> = {},
+) {
+  const { apiKey, apiSecret } =
+    getBinanceApiCredentials();
+
+  const { createHmac } =
+    await import("node:crypto");
+
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    query.set(key, String(value));
+  }
+
+  query.set("timestamp", String(Date.now()));
+  query.set("recvWindow", "5000");
+
+  const queryString = query.toString();
+
+  const signature = createHmac(
+    "sha256",
+    apiSecret,
+  )
+    .update(queryString)
+    .digest("hex");
+
+  const response = await fetch(
+    `https://api-gcp.binance.com${endpoint}?${queryString}&signature=${signature}`,
+    {
+      method: "POST",
+      headers: {
+        "X-MBX-APIKEY": apiKey,
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent":
+          "RENT-INVESTIMENT-Binance-Integration/1.0",
+      },
+      cache: "no-store",
+    },
+  );
+
+  const rawBody = await response.text();
+
+  let body: any = null;
+
+  try {
+    body = rawBody ? JSON.parse(rawBody) : null;
+  } catch {
+    body = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      body?.msg ||
+      rawBody?.slice(0, 300) ||
+      `HTTP ${response.status}`;
+
+    throw new Error(
+      `Binance respondeu HTTP ${response.status}: ${message}`,
+    );
+  }
+
+  return body;
+}
+
+
+// ============================================================
+// BINANCE — PROCESSAMENTO DE UM SAQUE USDT
+// ============================================================
+
+export async function processUsdtWithdrawal(
+  adminUserId: string,
+  withdrawalId: string,
+) {
+  await assertAdmin(adminUserId);
+
+  /*
+   * IMPORTANTE:
+   * Esta primeira versão NÃO envia dinheiro para a Binance.
+   *
+   * Ela apenas valida e prepara o pedido.
+   *
+   * Não ativar levantamentos Binance ainda.
+   */
+
+  const { data: withdrawal, error } =
+    await supabaseAdmin
+      .from("usdt_withdrawals")
+      .select(`
+        id,
+        user_id,
+        network,
+        token,
+        destination_address,
+        amount_mzn,
+        exchange_rate,
+        amount_usdt,
+        fee_mzn,
+        net_amount_mzn,
+        status,
+        binance_withdrawal_id,
+        binance_client_id
+      `)
+      .eq("id", withdrawalId)
+      .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Erro ao consultar saque USDT: ${error.message}`,
+    );
+  }
+
+  if (!withdrawal) {
+    throw new Error("Saque USDT não encontrado.");
+  }
+
+  if (withdrawal.status !== "PENDING") {
+    throw new Error(
+      `Este saque não está PENDING. Estado atual: ${withdrawal.status}`,
+    );
+  }
+
+  if (
+    String(withdrawal.network).toUpperCase() !== "TRC20"
+  ) {
+    throw new Error(
+      "O saque não está configurado para a rede TRC20.",
+    );
+  }
+
+  if (
+    String(withdrawal.token).toUpperCase() !== "USDT"
+  ) {
+    throw new Error(
+      "O ativo do saque não é USDT.",
+    );
+  }
+
+  const amountUsdt = Number(
+    withdrawal.amount_usdt,
+  );
+
+  if (
+    !Number.isFinite(amountUsdt) ||
+    amountUsdt <= 0
+  ) {
+    throw new Error(
+      "Quantidade USDT inválida.",
+    );
+  }
+
+  const destinationAddress =
+    String(
+      withdrawal.destination_address ?? "",
+    ).trim();
+
+  if (!destinationAddress) {
+    throw new Error(
+      "Endereço de destino não informado.",
+    );
+  }
+
+  /*
+   * Gera um identificador único ANTES de qualquer
+   * futura comunicação com a Binance.
+   *
+   * O mesmo identificador deverá ser reutilizado
+   * numa eventual tentativa segura.
+   */
+  const clientId =
+    withdrawal.binance_client_id ||
+    `RI-${withdrawal.id}`;
+
+  /*
+   * Registra o client_id no pedido.
+   *
+   * O índice UNIQUE criado na migration impede
+   * que dois pedidos usem o mesmo identificador.
+   */
+  const { data: updated, error: updateError } =
+    await supabaseAdmin
+      .from("usdt_withdrawals")
+      .update({
+        binance_client_id: clientId,
+        status: "PROCESSING",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", withdrawal.id)
+      .eq("status", "PENDING")
+      .select(`
+        id,
+        status,
+        binance_client_id
+      `)
+      .maybeSingle();
+
+  if (updateError) {
+    throw new Error(
+      `Não foi possível iniciar o processamento Binance: ${updateError.message}`,
+    );
+  }
+
+  if (!updated) {
+    throw new Error(
+      "Este saque já foi iniciado por outro processamento.",
+    );
+  }
+
+  await supabaseAdmin
+    .from("binance_events")
+    .insert({
+      withdrawal_id: withdrawal.id,
+      event_type: "PROCESSING_STARTED",
+      client_id: clientId,
+      amount_usdt: amountUsdt,
+      network: "TRC20",
+      address: destinationAddress,
+      status: "PROCESSING",
+      message:
+        "Saque USDT preparado para processamento Binance.",
+    });
+
+  return {
+    success: true,
+    withdrawalId: withdrawal.id,
+    status: "PROCESSING",
+    clientId,
+    amountUsdt,
+    network: "TRC20",
+    destinationAddress,
+    message:
+      "Saque USDT colocado em PROCESSING. Nenhum USDT foi enviado nesta etapa.",
+  };
+}
+
+// ============================================================
 // BINANCE — TESTE DE CONEXÃO E PERMISSÕES
 // ============================================================
 
