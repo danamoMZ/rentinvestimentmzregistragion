@@ -369,3 +369,19 @@ export const binanceUsdtBalanceFn = createServerFn({
       context.userId,
     );
   });
+
+export const processUsdtWithdrawalFn = createServerFn({
+  method: "POST",
+})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { withdrawalId: string }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.processUsdtWithdrawal(
+      context.userId,
+      data.withdrawalId,
+    );
+  });
