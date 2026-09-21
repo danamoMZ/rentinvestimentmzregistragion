@@ -1991,7 +1991,7 @@ async function binanceSignedGet(
     .digest("hex");
 
   const response = await fetch(
-    `https://api.binance.com${endpoint}?${queryString}&signature=${signature}`,
+  `https://api-gcp.binance.com${endpoint}?${queryString}&signature=${signature}`,
     {
       method: "GET",
       headers: {
