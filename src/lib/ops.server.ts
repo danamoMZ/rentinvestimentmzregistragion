@@ -1974,7 +1974,8 @@ async function binanceSignedGet(
       headers: {
         "X-MBX-APIKEY": apiKey,
         Accept: "application/json",
-        "User-Agent": "RENT-INVESTIMENT-Binance-Integration/1.0",
+        "User-Agent":
+          "RENT-INVESTIMENT-Binance-Integration/1.0",
       },
       cache: "no-store",
     },
@@ -2029,7 +2030,8 @@ export async function testBinanceConnection(
         method: "GET",
         headers: {
           Accept: "application/json",
-          "User-Agent": "RENT-INVESTIMENT-Diagnostic/1.0",
+          "User-Agent":
+            "RENT-INVESTIMENT-Diagnostic/1.0",
         },
         cache: "no-store",
       },
@@ -2065,16 +2067,20 @@ export async function testBinanceConnection(
   if (!publicTest.success) {
     return {
       success: false,
+
       publicConnection: publicTest,
+
       privateConnection: {
         success: false,
         status: null,
         message:
           "Teste privado não executado porque a conexão pública falhou.",
       },
+
       enableReading: false,
       enableWithdrawals: false,
       ipRestrict: false,
+
       message:
         "A conexão pública com a Binance foi bloqueada ou recusada.",
     };
@@ -2105,45 +2111,64 @@ export async function testBinanceConnection(
         status: 200,
         message:
           "API Key e assinatura aceites pela Binance.",
-        enableReading: Boolean(result?.enableReading),
+        enableReading: Boolean(
+          result?.enableReading,
+        ),
         enableWithdrawals: Boolean(
           result?.enableWithdrawals,
         ),
-        ipRestrict: Boolean(result?.ipRestrict),
+        ipRestrict: Boolean(
+          result?.ipRestrict,
+        ),
       },
 
-      enableReading: Boolean(result?.enableReading),
+      enableReading: Boolean(
+        result?.enableReading,
+      ),
+
       enableWithdrawals: Boolean(
         result?.enableWithdrawals,
       ),
-      ipRestrict: Boolean(result?.ipRestrict),
+
+      ipRestrict: Boolean(
+        result?.ipRestrict,
+      ),
 
       message:
         "Conexão pública e API privada funcionando.",
     };
   } catch (error) {
-  const message =
-    error instanceof Error
-      ? error.message
-      : "Falha no teste da API privada.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Falha no teste da API privada.";
 
-  console.error(
-    "[BINANCE PRIVATE TEST]",
-    message,
-  );
+    console.error(
+      "[BINANCE PRIVATE TEST]",
+      message,
+    );
 
-    const statusMatch = message.match(/HTTP (\d+)/);
+    const statusMatch =
+      message.match(/HTTP (\d+)/);
 
     return {
-  success: false,
-  publicConnection: publicTest,
-  privateConnection: {
-    success: false,
-    status: statusMatch ? Number(statusMatch[1]) : null,
-    message,
-  },
-  enableReading: false,
-  enableWithdrawals: false,
-  ipRestrict: false,
-  message,
-};
+      success: false,
+
+      publicConnection: publicTest,
+
+      privateConnection: {
+        success: false,
+        status: statusMatch
+          ? Number(statusMatch[1])
+          : null,
+        message,
+      },
+
+      enableReading: false,
+      enableWithdrawals: false,
+      ipRestrict: false,
+
+      message,
+    };
+  }
+}
