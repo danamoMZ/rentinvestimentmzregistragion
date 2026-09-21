@@ -1964,76 +1964,11 @@ function getBinanceApiCredentials() {
 // BINANCE — TESTE DE CONEXÃO E PERMISSÕES
 // ============================================================
 
-async function binanceSignedGet(
-  endpoint: string,
-  params: Record<string, string | number> = {},
-) {
-  const { apiKey, apiSecret } = getBinanceApiCredentials();
-
-  const { createHmac } = await import("node:crypto");
-
-  const query = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(params)) {
-    query.set(key, String(value));
-  }
-
-  query.set("timestamp", String(Date.now()));
-  query.set("recvWindow", "5000");
-
-  const queryString = query.toString();
-
-  const signature = createHmac(
-    "sha256",
-    apiSecret,
-  )
-    .update(queryString)
-    .digest("hex");
-
-  const response = await fetch(
-  `https://api-gcp.binance.com${endpoint}?${queryString}&signature=${signature}`,
-    {
-      method: "GET",
-      headers: {
-        "X-MBX-APIKEY": apiKey,
-        Accept: "application/json",
-        "User-Agent":
-          "RENT-INVESTIMENT-Binance-Integration/1.0",
-      },
-      cache: "no-store",
-    },
-  );
-
-  const rawBody = await response.text();
-
-  let body: any = null;
-
-  try {
-    body = rawBody ? JSON.parse(rawBody) : null;
-  } catch {
-    body = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      body?.msg ||
-      rawBody?.slice(0, 300) ||
-      `HTTP ${response.status}`;
-
-    throw new Error(
-      `Binance respondeu HTTP ${response.status}: ${message}`,
-    );
-  }
-
-  return body;
-}
-
 export async function testBinanceConnection(
   adminUserId: string,
 ) {
   // ==========================================================
-  // TESTE 1 — CONEXÃO PÚBLICA COM A BINANCE
-  // Não utiliza API Key, Secret ou Supabase Service Role.
+  // TESTE 1 — CONEXÃO PÚBLICA
   // ==========================================================
 
   let publicTest: {
@@ -2083,8 +2018,7 @@ export async function testBinanceConnection(
   }
 
   // ==========================================================
-  // Se a conexão pública falhou, terminamos aqui.
-  // Não precisamos do Supabase para esse diagnóstico.
+  // CONEXÃO PÚBLICA FALHOU
   // ==========================================================
 
   if (!publicTest.success) {
@@ -2110,19 +2044,55 @@ export async function testBinanceConnection(
   }
 
   // ==========================================================
-  // TESTE 2 — SOMENTE AGORA verificamos o administrador.
+  // VERIFICAR ADMIN
   // ==========================================================
 
   await assertAdmin(adminUserId);
 
   // ==========================================================
-  // TESTE 3 — API KEY + ASSINATURA
+  // TESTE 2 — API PRIVADA
   // ==========================================================
 
   try {
     const result = await binanceSignedGet(
       "/sapi/v1/account/apiRestrictions",
     );
+
+    const enableReading = Boolean(
+      result?.enableReading,
+    );
+
+    const enableWithdrawals = Boolean(
+      result?.enableWithdrawals,
+    );
+
+    const ipRestrict = Boolean(
+      result?.ipRestrict,
+    );
+
+    // ========================================================
+    // API PRIVADA FUNCIONOU
+    // Marcamos api_configured = true.
+    //
+    // IMPORTANTE:
+    // Isto NÃO ativa levantamentos.
+    // ========================================================
+
+    const { error: settingsError } =
+      await supabaseAdmin
+        .from("binance_settings")
+        .update({
+          api_configured: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", true);
+
+    if (settingsError) {
+      console.error(
+        "[BINANCE SETTINGS UPDATE]",
+        settingsError,
+      );
+    }
 
     return {
       success: true,
@@ -2134,28 +2104,19 @@ export async function testBinanceConnection(
         status: 200,
         message:
           "API Key e assinatura aceites pela Binance.",
-        enableReading: Boolean(
-          result?.enableReading,
-        ),
-        enableWithdrawals: Boolean(
-          result?.enableWithdrawals,
-        ),
-        ipRestrict: Boolean(
-          result?.ipRestrict,
-        ),
+
+        enableReading,
+
+        enableWithdrawals,
+
+        ipRestrict,
       },
 
-      enableReading: Boolean(
-        result?.enableReading,
-      ),
+      enableReading,
 
-      enableWithdrawals: Boolean(
-        result?.enableWithdrawals,
-      ),
+      enableWithdrawals,
 
-      ipRestrict: Boolean(
-        result?.ipRestrict,
-      ),
+      ipRestrict,
 
       message:
         "Conexão pública e API privada funcionando.",
@@ -2181,20 +2142,25 @@ export async function testBinanceConnection(
 
       privateConnection: {
         success: false,
+
         status: statusMatch
           ? Number(statusMatch[1])
           : null,
+
         message,
       },
 
       enableReading: false,
+
       enableWithdrawals: false,
+
       ipRestrict: false,
 
       message,
     };
   }
 }
+      
 
 // ============================================================
 // BINANCE — CONSULTAR SALDO USDT
