@@ -1961,6 +1961,116 @@ function getBinanceApiCredentials() {
 }
 
 // ============================================================
+// BINANCE — CREDENCIAIS
+// ============================================================
+
+function getBinanceApiCredentials() {
+  const apiKey =
+    process.env.BINANCE_API_KEY?.trim() || "";
+
+  const apiSecret =
+    process.env.BINANCE_API_SECRET?.trim() || "";
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(
+      "As credenciais BINANCE_API_KEY e BINANCE_API_SECRET não estão configuradas no servidor.",
+    );
+  }
+
+  return {
+    apiKey,
+    apiSecret,
+  };
+}
+
+
+// ============================================================
+// BINANCE — PEDIDO PRIVADO ASSINADO
+// ============================================================
+
+async function binanceSignedGet(
+  endpoint: string,
+  params: Record<string, string | number> = {},
+) {
+  const { apiKey, apiSecret } =
+    getBinanceApiCredentials();
+
+  const { createHmac } =
+    await import("node:crypto");
+
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(
+    params,
+  )) {
+    query.set(key, String(value));
+  }
+
+  query.set(
+    "timestamp",
+    String(Date.now()),
+  );
+
+  query.set(
+    "recvWindow",
+    "5000",
+  );
+
+  const queryString =
+    query.toString();
+
+  const signature =
+    createHmac(
+      "sha256",
+      apiSecret,
+    )
+      .update(queryString)
+      .digest("hex");
+
+  const response = await fetch(
+    `https://api-gcp.binance.com${endpoint}?${queryString}&signature=${signature}`,
+    {
+      method: "GET",
+
+      headers: {
+        "X-MBX-APIKEY": apiKey,
+        Accept: "application/json",
+        "User-Agent":
+          "RENT-INVESTIMENT-Binance-Integration/1.0",
+      },
+
+      cache: "no-store",
+    },
+  );
+
+  const rawBody =
+    await response.text();
+
+  let body: any = null;
+
+  try {
+    body = rawBody
+      ? JSON.parse(rawBody)
+      : null;
+  } catch {
+    body = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      body?.msg ||
+      rawBody?.slice(0, 300) ||
+      `HTTP ${response.status}`;
+
+    throw new Error(
+      `Binance respondeu HTTP ${response.status}: ${message}`,
+    );
+  }
+
+  return body;
+}
+
+// ============================================================
 // BINANCE — TESTE DE CONEXÃO E PERMISSÕES
 // ============================================================
 
