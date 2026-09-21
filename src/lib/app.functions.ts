@@ -357,3 +357,15 @@ export const testBinanceConnectionFn = createServerFn({
 
     return ops.testBinanceConnection(context.userId);
   });
+
+export const binanceUsdtBalanceFn = createServerFn({
+  method: "GET",
+})
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.getBinanceUsdtBalance(
+      context.userId,
+    );
+  });
