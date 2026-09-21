@@ -160,6 +160,7 @@ function AdminPage() {
           </TabsContent>
           <TabsContent value="binance">
            <BinanceUsdtSettings />
+            <UsdtWithdrawalAdmin />
           </TabsContent>
           <TabsContent value="settings">
             <Settings />
