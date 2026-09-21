@@ -2591,3 +2591,212 @@ export async function getBinanceUsdtBalance(
     };
   }
 }
+
+// ============================================================
+// CONFIGURAÇÃO USDT TRC20 — ADMIN
+// ============================================================
+
+export async function getUsdtAdminSettings(
+  adminUserId: string,
+) {
+  await assertAdmin(adminUserId);
+
+  const { data, error } = await supabaseAdmin
+    .from("usdt_settings")
+    .select(
+      [
+        "network",
+        "symbol",
+        "deposit_address",
+        "deposit_enabled",
+        "withdrawal_enabled",
+        "usdt_mzn_rate",
+        "min_deposit_usdt",
+        "min_withdrawal_usdt",
+        "updated_at",
+      ].join(","),
+    )
+    .eq("id", true)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível carregar a configuração USDT: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "A configuração USDT TRC20 ainda não foi criada.",
+    );
+  }
+
+  return {
+    network: String(data.network ?? "TRC20"),
+    symbol: String(data.symbol ?? "USDT"),
+
+    depositAddress: String(
+      data.deposit_address ?? "",
+    ),
+
+    depositEnabled:
+      Boolean(data.deposit_enabled),
+
+    withdrawalEnabled:
+      Boolean(data.withdrawal_enabled),
+
+    usdtMznRate:
+      Number(data.usdt_mzn_rate ?? 0),
+
+    minDepositUsdt:
+      Number(data.min_deposit_usdt ?? 1),
+
+    minWithdrawalUsdt:
+      Number(data.min_withdrawal_usdt ?? 1),
+
+    updatedAt:
+      data.updated_at ?? null,
+  };
+}
+
+
+export async function updateUsdtAdminSettings(
+  adminUserId: string,
+  input: {
+    depositAddress: string;
+    depositEnabled: boolean;
+    withdrawalEnabled: boolean;
+    usdtMznRate: number;
+    minDepositUsdt: number;
+    minWithdrawalUsdt: number;
+  },
+) {
+  await assertAdmin(adminUserId);
+
+  const depositAddress =
+    String(input.depositAddress ?? "").trim();
+
+  const usdtMznRate =
+    Number(input.usdtMznRate);
+
+  const minDepositUsdt =
+    Number(input.minDepositUsdt);
+
+  const minWithdrawalUsdt =
+    Number(input.minWithdrawalUsdt);
+
+  if (
+    depositAddress &&
+    !/^T[a-zA-Z0-9]{33}$/.test(depositAddress)
+  ) {
+    throw new Error(
+      "O endereço de depósito deve ser um endereço TRON TRC20 válido.",
+    );
+  }
+
+  if (
+    !Number.isFinite(usdtMznRate) ||
+    usdtMznRate <= 0
+  ) {
+    throw new Error(
+      "A taxa USDT/MZN deve ser maior que zero.",
+    );
+  }
+
+  if (
+    !Number.isFinite(minDepositUsdt) ||
+    minDepositUsdt <= 0
+  ) {
+    throw new Error(
+      "O mínimo de depósito USDT deve ser maior que zero.",
+    );
+  }
+
+  if (
+    !Number.isFinite(minWithdrawalUsdt) ||
+    minWithdrawalUsdt <= 0
+  ) {
+    throw new Error(
+      "O mínimo de saque USDT deve ser maior que zero.",
+    );
+  }
+
+  if (
+    minDepositUsdt > 1000000 ||
+    minWithdrawalUsdt > 1000000
+  ) {
+    throw new Error(
+      "O valor mínimo USDT informado é demasiado alto.",
+    );
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("usdt_settings")
+    .update({
+      network: "TRC20",
+      symbol: "USDT",
+      deposit_address: depositAddress,
+      deposit_enabled:
+        Boolean(input.depositEnabled),
+      withdrawal_enabled:
+        Boolean(input.withdrawalEnabled),
+      usdt_mzn_rate: usdtMznRate,
+      min_deposit_usdt: minDepositUsdt,
+      min_withdrawal_usdt:
+        minWithdrawalUsdt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", true)
+    .select(
+      [
+        "network",
+        "symbol",
+        "deposit_address",
+        "deposit_enabled",
+        "withdrawal_enabled",
+        "usdt_mzn_rate",
+        "min_deposit_usdt",
+        "min_withdrawal_usdt",
+        "updated_at",
+      ].join(","),
+    )
+    .single();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível guardar a configuração USDT: ${error.message}`,
+    );
+  }
+
+  return {
+    success: true,
+
+    network: String(data.network),
+    symbol: String(data.symbol),
+
+    depositAddress: String(
+      data.deposit_address ?? "",
+    ),
+
+    depositEnabled:
+      Boolean(data.deposit_enabled),
+
+    withdrawalEnabled:
+      Boolean(data.withdrawal_enabled),
+
+    usdtMznRate:
+      Number(data.usdt_mzn_rate),
+
+    minDepositUsdt:
+      Number(data.min_deposit_usdt),
+
+    minWithdrawalUsdt:
+      Number(data.min_withdrawal_usdt),
+
+    updatedAt:
+      data.updated_at ?? null,
+
+    message:
+      "Configuração USDT TRC20 atualizada com sucesso.",
+  };
+}
