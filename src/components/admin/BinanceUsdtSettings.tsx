@@ -4,6 +4,7 @@ import {
   binanceSettingsFn,
   updateBinanceSettingsFn,
   testBinanceConnectionFn,
+  binanceUsdtBalanceFn,
 } from "@/lib/app.functions";
 import { Button } from "@/components/ui/button";
 
@@ -35,6 +36,21 @@ export function BinanceUsdtSettings() {
 
   const [connectionResult, setConnectionResult] =
     useState<BinanceConnectionResult | null>(null);
+  
+  type BinanceBalance = {
+  success: boolean;
+  asset: string;
+  free: number;
+  locked: number;
+  total: number;
+  message: string;
+};
+
+const [binanceBalance, setBinanceBalance] =
+  useState<BinanceBalance | null>(null);
+
+const [loadingBalance, setLoadingBalance] =
+  useState(false);
 
   async function loadSettings() {
     try {
@@ -143,6 +159,55 @@ export function BinanceUsdtSettings() {
     }
   }
 
+  async function loadBinanceBalance() {
+  try {
+    setLoadingBalance(true);
+
+    const result = await binanceUsdtBalanceFn();
+
+    const balance: BinanceBalance = {
+      success: Boolean(result.success),
+      asset: String(result.asset ?? "USDT"),
+      free: Number(result.free ?? 0),
+      locked: Number(result.locked ?? 0),
+      total: Number(result.total ?? 0),
+      message: String(
+        result.message ??
+          "Saldo Binance consultado.",
+      ),
+    };
+
+    setBinanceBalance(balance);
+
+    if (!balance.success) {
+      toast.error(balance.message);
+    }
+  } catch (error) {
+    console.error(
+      "[BINANCE BALANCE UI]",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível consultar o saldo USDT da Binance.";
+
+    setBinanceBalance({
+      success: false,
+      asset: "USDT",
+      free: 0,
+      locked: 0,
+      total: 0,
+      message,
+    });
+
+    toast.error(message);
+  } finally {
+    setLoadingBalance(false);
+  }
+  }
+
   if (loading) {
     return (
       <div className="surface-card p-5">
@@ -197,6 +262,95 @@ export function BinanceUsdtSettings() {
             </p>
           </div>
         </div>
+
+        {/* SALDO BINANCE */}
+<div className="mt-5 rounded-lg border p-4">
+  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p className="font-medium">
+        Saldo Binance — USDT
+      </p>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        Consulta o saldo real da conta Binance.
+        Esta operação é somente de leitura.
+      </p>
+    </div>
+
+    <Button
+      type="button"
+      variant="outline"
+      onClick={loadBinanceBalance}
+      disabled={loadingBalance}
+    >
+      {loadingBalance
+        ? "A consultar..."
+        : "Atualizar saldo"}
+    </Button>
+  </div>
+
+  {binanceBalance && (
+    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="rounded-lg border p-4">
+        <p className="text-xs text-muted-foreground">
+          Disponível
+        </p>
+
+        <p className="mt-1 text-lg font-semibold">
+          {binanceBalance.free.toLocaleString(
+            "en-US",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 8,
+            },
+          )}{" "}
+          USDT
+        </p>
+      </div>
+
+      <div className="rounded-lg border p-4">
+        <p className="text-xs text-muted-foreground">
+          Bloqueado
+        </p>
+
+        <p className="mt-1 text-lg font-semibold">
+          {binanceBalance.locked.toLocaleString(
+            "en-US",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 8,
+            },
+          )}{" "}
+          USDT
+        </p>
+      </div>
+
+      <div className="rounded-lg border p-4">
+        <p className="text-xs text-muted-foreground">
+          Total
+        </p>
+
+        <p className="mt-1 text-lg font-bold">
+          {binanceBalance.total.toLocaleString(
+            "en-US",
+            {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 8,
+            },
+          )}{" "}
+          USDT
+        </p>
+      </div>
+    </div>
+  )}
+
+  {!binanceBalance && !loadingBalance && (
+    <p className="mt-4 text-sm text-muted-foreground">
+      Clique em “Atualizar saldo” para consultar o saldo
+      atual da Binance.
+    </p>
+  )}
+</div>
 
         {/* TESTE DA API */}
         <div className="mt-5 rounded-lg border p-4">
