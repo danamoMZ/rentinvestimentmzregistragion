@@ -2293,3 +2293,60 @@ export async function testBinanceConnection(
     };
   }
 }
+
+// ============================================================
+// BINANCE — SALDO USDT
+// ============================================================
+
+export async function getBinanceUsdtBalance(
+  adminUserId: string,
+) {
+  await assertAdmin(adminUserId);
+
+  try {
+    const result = await binanceSignedGet(
+      "/api/v3/account",
+    );
+
+    const balances = Array.isArray(result?.balances)
+      ? result.balances
+      : [];
+
+    const usdt = balances.find(
+      (item: any) =>
+        String(item?.asset ?? "").toUpperCase() === "USDT",
+    );
+
+    const free = Number(usdt?.free ?? 0);
+    const locked = Number(usdt?.locked ?? 0);
+
+    return {
+      success: true,
+      asset: "USDT",
+      free,
+      locked,
+      total: free + locked,
+      message:
+        "Saldo USDT da Binance consultado com sucesso.",
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Falha ao consultar o saldo USDT da Binance.";
+
+    console.error(
+      "[BINANCE USDT BALANCE]",
+      message,
+    );
+
+    return {
+      success: false,
+      asset: "USDT",
+      free: 0,
+      locked: 0,
+      total: 0,
+      message,
+    };
+  }
+}
