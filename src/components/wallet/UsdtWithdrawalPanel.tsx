@@ -147,7 +147,7 @@ export function UsdtWithdrawalPanel() {
         </p>
       </div>
 
-      {!settings?.withdrawal_enabled ? (
+      {!settings?.withdrawalEnabled ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
           Os saques USDT TRC20 ainda não estão disponíveis.
         </div>
@@ -172,7 +172,7 @@ export function UsdtWithdrawalPanel() {
               </span>
             </div>
 
-            {settings.min_withdrawal_usdt > 0 && (
+            {settings.minWithdrawalUsdt > 0 && (
               <div className="mt-2 flex justify-between gap-3">
                 <span className="text-muted-foreground">
                   Mínimo
