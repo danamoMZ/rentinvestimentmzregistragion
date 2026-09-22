@@ -62,11 +62,6 @@ export const PAYMENT_FIELDS = [
   { key: "payment_holder", label: "Nome do titular", placeholder: "CARLITOS OSSUFO" },
 ] as const;
 
-export const PAYMENT_FIELDS = [
-  { key: "payment_emola", label: "Número Mpesa", placeholder: "865982221" },
-  { key: "payment_holder", label: "Nome do titular", placeholder: "CARLITOS OSSUFO" },
-] as const;
-
 export const toHref = (value: string) => {
   const v = value.trim();
   if (!v) return "";
