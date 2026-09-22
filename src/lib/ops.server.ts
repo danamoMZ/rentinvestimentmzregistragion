@@ -1937,6 +1937,86 @@ async function assertBinanceWithdrawalReady() {
   return settings;
 }
 
+/**
+ * Atualiza a configuração da integração Binance.
+ *
+ * IMPORTANTE:
+ * Esta função apenas guarda a configuração no banco.
+ * Não envia USDT e não ativa permissões na API da Binance.
+ */
+export async function updateBinanceSettings(
+  adminUserId: string,
+  input: {
+    enabled: boolean;
+    automaticWithdrawals: boolean;
+  },
+) {
+  await assertAdmin(adminUserId);
+
+  const enabled = Boolean(input.enabled);
+  const automaticWithdrawals = Boolean(
+    input.automaticWithdrawals,
+  );
+
+  /*
+   * A ativação dos saques automáticos nesta tela
+   * não concede permissão de levantamento à API Binance.
+   *
+   * O processamento continuará protegido por
+   * assertBinanceWithdrawalReady() e pelas permissões
+   * reais da API.
+   */
+
+  const { data, error } = await supabaseAdmin
+    .from("binance_settings")
+    .update({
+      enabled,
+      automatic_withdrawals:
+        automaticWithdrawals,
+      updated_at:
+        new Date().toISOString(),
+    })
+    .eq("id", true)
+    .select(
+      "enabled,automatic_withdrawals,asset,network,api_configured",
+    )
+    .single();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível guardar a configuração Binance: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "A configuração Binance não foi encontrada.",
+    );
+  }
+
+  return {
+    success: true,
+
+    enabled:
+      Boolean(data.enabled),
+
+    automaticWithdrawals:
+      Boolean(data.automatic_withdrawals),
+
+    asset:
+      String(data.asset ?? "USDT"),
+
+    network:
+      String(data.network ?? "TRC20"),
+
+    apiConfigured:
+      Boolean(data.api_configured),
+
+    message:
+      "Configuração Binance atualizada com sucesso.",
+  };
+}
+
 // ============================================================
 // BINANCE — CREDENCIAIS DA API
 // ============================================================
