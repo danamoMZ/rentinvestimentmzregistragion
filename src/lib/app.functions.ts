@@ -355,6 +355,22 @@ export const requestUsdtWithdrawalFn = createServerFn({
   });
 
 // ============================================================
+// TEMPORÁRIO — IP DE SAÍDA DO SERVIDOR
+// ============================================================
+
+export const getServerOutboundIpFn = createServerFn({
+  method: "GET",
+})
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.getServerOutboundIp(
+      context.userId,
+    );
+  });
+
+// ============================================================
 // BINANCE USDT TRC20
 // ============================================================
 
