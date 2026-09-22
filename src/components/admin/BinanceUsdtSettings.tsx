@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getServerOutboundIpFn } from "@/lib/app.functions";
 import { toast } from "sonner";
 
 import {
@@ -579,6 +580,28 @@ export function BinanceUsdtSettings() {
                       </strong>
                     </div>
                   )}
+
+                  <Button
+  type="button"
+  variant="outline"
+  onClick={async () => {
+    try {
+      const result = await getServerOutboundIpFn();
+
+      toast.success(
+        `IP do servidor: ${result.ip}`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível descobrir o IP.",
+      );
+    }
+  }}
+>
+  Descobrir IP do servidor
+</Button>
 
 
                   {typeof connectionResult.enableWithdrawals ===
