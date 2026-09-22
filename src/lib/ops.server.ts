@@ -2018,6 +2018,52 @@ export async function updateBinanceSettings(
 }
 
 // ============================================================
+// TEMPORÁRIO — DESCOBRIR IP DE SAÍDA DO SERVIDOR
+// ============================================================
+
+export async function getServerOutboundIp(
+  adminUserId: string,
+) {
+  await assertAdmin(adminUserId);
+
+  try {
+    const response = await fetch(
+      "https://api.ipify.org?format=json",
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+
+    const body = await response.json();
+
+    const ip = String(body?.ip ?? "").trim();
+
+    if (!response.ok || !ip) {
+      throw new Error(
+        "O serviço não devolveu um IP público válido.",
+      );
+    }
+
+    return {
+      success: true,
+      ip,
+      message:
+        "IP de saída do servidor identificado com sucesso.",
+    };
+  } catch (error) {
+    throw new Error(
+      error instanceof Error
+        ? `Não foi possível descobrir o IP de saída do servidor: ${error.message}`
+        : "Não foi possível descobrir o IP de saída do servidor.",
+    );
+  }
+}
+
+// ============================================================
 // BINANCE — CREDENCIAIS DA API
 // ============================================================
 
