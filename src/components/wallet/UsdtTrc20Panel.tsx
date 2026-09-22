@@ -69,7 +69,7 @@ export function UsdtTrc20Panel() {
     setDepositLoading(true);
 
     try {
-      const result = await createUsdtDeposit({
+      const result = await createUsdtDepositFn({
         data: {
           txid: cleanTxid,
         },
