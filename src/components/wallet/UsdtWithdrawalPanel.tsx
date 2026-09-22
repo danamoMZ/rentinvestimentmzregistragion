@@ -178,7 +178,7 @@ export function UsdtWithdrawalPanel() {
                   Mínimo
                 </span>
                 <span className="font-semibold">
-                  {settings.min_withdrawal_usdt} USDT
+                  {settings.minWithdrawalUsdt} USDT
                 </span>
               </div>
             )}
