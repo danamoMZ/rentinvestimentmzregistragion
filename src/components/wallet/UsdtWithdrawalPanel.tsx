@@ -54,12 +54,12 @@ export function UsdtWithdrawalPanel() {
 
   const value = Number(amountMzn) || 0;
 
-  const rate = Number(settings?.usdt_mzn_rate) || 0;
+  const rate = Number(settings?.usdtMznRate) || 0;
 
   const estimatedUsdt = rate > 0 ? value / rate : 0;
 
   async function submit() {
-    if (!settings?.withdrawal_enabled) {
+    if (!settings?.withdrawalEnabled) {
       toast.error("Os saques USDT TRC20 estão temporariamente indisponíveis.");
       return;
     }
@@ -85,13 +85,13 @@ export function UsdtWithdrawalPanel() {
     }
 
     if (
-      settings?.min_withdrawal_usdt > 0 &&
-      estimatedUsdt < settings.min_withdrawal_usdt
+      settings?.minWithdrawalUsdt > 0 &&
+      estimatedUsdt < settings.minWithdrawalUsdt
     ) {
-      toast.error(
-        `O mínimo é ${settings.min_withdrawal_usdt} USDT.`,
-      );
-      return;
+     toast.error(
+      `O mínimo é ${settings.minWithdrawalUsdt} USDT.`,
+     );
+     return;
     }
 
     try {
