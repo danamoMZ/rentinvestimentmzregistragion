@@ -549,37 +549,6 @@ export async function reviewDeposit(adminId: string, depositId: string, approve:
     `O seu plano ${plan.name} está ativo até ${end}. Já pode realizar as tarefas.`,
   );
 
-  // Bónus automático de primeiro plano (apenas na primeira aprovação do utilizador)
-  const { count: approvedBefore } = await supabaseAdmin
-    .from("deposit_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", deposit.user_id)
-    .eq("status", "APPROVED")
-    .neq("id", deposit.id);
-  if ((approvedBefore ?? 0) === 0) {
-    const { data: alreadyPaid } = await supabaseAdmin
-      .from("ledger_transactions")
-      .select("id")
-      .eq("user_id", deposit.user_id)
-      .eq("type", "FIRST_PLAN_BONUS")
-      .limit(1)
-      .maybeSingle();
-    if (!alreadyPaid) {
-      await ledger(
-        deposit.user_id,
-        "FIRST_PLAN_BONUS",
-        FIRST_PLAN_BONUS,
-        `FIRST-PLAN-${deposit.id}`,
-        `Bónus de primeiro plano — +${FIRST_PLAN_BONUS} MZN`,
-      );
-      await notify(
-        deposit.user_id,
-        "🎁 Bónus de primeiro plano",
-        `Parabéns! Recebeu ${FIRST_PLAN_BONUS} MZN de bónus por ativar o seu primeiro plano. O valor já está no seu saldo.`,
-      );
-    }
-  }
-
   await payReferralReward(deposit.user_id, Number(plan.price));
   await logAdmin(adminId, "APPROVE_DEPOSIT", deposit.user_id, Number(deposit.amount), null, "APPROVED");
   return { ok: true as const };
