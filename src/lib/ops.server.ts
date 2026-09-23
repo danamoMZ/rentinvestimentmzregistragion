@@ -17,7 +17,6 @@ export function levelFor(activeReferrals: number) {
 
 export const AFFILIATE_REWARDS: Record<string, number> = { VIDEO: 300, POST: 150 };
 
-export const FIRST_PLAN_BONUS = 100;
 export const WITHDRAWAL_FEE_RATE = 0.10;
 export const PROMO_DEFAULT_BONUS = 20;
 export const PROMO_VALIDITY_MS = 60 * 60 * 1000;
