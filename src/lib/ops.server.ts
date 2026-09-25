@@ -497,6 +497,360 @@ export async function syncAccount() {
   return { ok: true as const };
 }
 
+async function getLockedTransferDepositAmount(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("ledger_transactions")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("type", "TRANSFER_RECEIVE_DEPOSIT");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).reduce(
+    (total, row) => total + Math.max(0, Number(row.amount ?? 0)),
+    0,
+  );
+}
+
+async function getPendingWithdrawalAmount(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("withdrawals")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("status", "PENDING");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).reduce(
+    (total, row) => total + Math.max(0, Number(row.amount ?? 0)),
+    0,
+  );
+}
+
+async function getTransferableBalance(
+  userId: string,
+  withdrawalPurpose: boolean,
+) {
+  const profile = await assertNotBlocked(userId);
+
+  const balance = Number(profile.balance ?? 0);
+
+  const pendingWithdrawals =
+    await getPendingWithdrawalAmount(userId);
+
+  const afterPending = Math.max(
+    0,
+    balance - pendingWithdrawals,
+  );
+
+  if (!withdrawalPurpose) {
+    return afterPending;
+  }
+
+  const lockedDeposit =
+    await getLockedTransferDepositAmount(userId);
+
+  return Math.max(
+    0,
+    afterPending - lockedDeposit,
+  );
+}
+
+export async function transferFunds(
+  userId: string,
+  input: {
+    recipientPublicId: string;
+    amount: number;
+    purpose: "DEPOSIT" | "WITHDRAWAL";
+    clientReference: string;
+  },
+) {
+  await assertNotBlocked(userId);
+
+  const recipientPublicId =
+    input.recipientPublicId.trim().toUpperCase();
+
+  const amount = Math.round(Number(input.amount) * 100) / 100;
+
+  if (!recipientPublicId) {
+    throw new Error("Informe o ID do destinatário.");
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("O valor da transferência é inválido.");
+  }
+
+  if (amount < 1) {
+    throw new Error("O valor mínimo da transferência é 1 MZN.");
+  }
+
+  if (
+    input.purpose !== "DEPOSIT" &&
+    input.purpose !== "WITHDRAWAL"
+  ) {
+    throw new Error("Finalidade da transferência inválida.");
+  }
+
+  if (!input.clientReference?.trim()) {
+    throw new Error("Referência da transferência inválida.");
+  }
+
+  const activePlan = await getActivePlan(userId);
+
+  if (!activePlan) {
+    throw new Error(
+      "❌ É necessário ter um plano ativo para transferir fundos.",
+    );
+  }
+
+  const { data: recipient, error: recipientError } =
+    await supabaseAdmin
+      .from("profiles")
+      .select("id, public_id, full_name, blocked")
+      .eq("public_id", recipientPublicId)
+      .maybeSingle();
+
+  if (recipientError) {
+    throw new Error(recipientError.message);
+  }
+
+  if (!recipient) {
+    throw new Error("Destinatário não encontrado.");
+  }
+
+  if (recipient.id === userId) {
+    throw new Error(
+      "Não é possível transferir fundos para a sua própria conta.",
+    );
+  }
+
+  if (recipient.blocked) {
+    throw new Error(
+      "O destinatário está com a conta bloqueada.",
+    );
+  }
+
+  const recipientPlan = await getActivePlan(recipient.id);
+
+  if (!recipientPlan) {
+    throw new Error(
+      "O destinatário precisa ter um plano ativo.",
+    );
+  }
+
+  const withdrawalPurpose =
+    input.purpose === "WITHDRAWAL";
+
+  const transferable =
+    await getTransferableBalance(
+      userId,
+      withdrawalPurpose,
+    );
+
+  if (transferable < amount) {
+    if (withdrawalPurpose) {
+      throw new Error(
+        `Saldo levantável insuficiente. Disponível: ${transferable.toFixed(2)} MZN.`,
+      );
+    }
+
+    throw new Error(
+      `Saldo insuficiente. Disponível: ${transferable.toFixed(2)} MZN.`,
+    );
+  }
+
+  const baseReference =
+    `TRANSFER-${input.clientReference.trim()}`;
+
+  const outgoingReference =
+    `${baseReference}-OUT`;
+
+  const incomingReference =
+    `${baseReference}-IN`;
+
+  // Proteção contra duplo clique/reenvio da mesma operação.
+  const { data: previous } = await supabaseAdmin
+    .from("ledger_transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("reference", outgoingReference)
+    .maybeSingle();
+
+  if (previous) {
+    return {
+      ok: true as const,
+      message: "Esta transferência já foi processada.",
+    };
+  }
+
+  const purposeLabel =
+    input.purpose === "DEPOSIT"
+      ? "para depósito"
+      : "para levantamento";
+
+  // Primeiro debitamos o remetente.
+  await ledger(
+    userId,
+    "TRANSFER_SEND",
+    -amount,
+    outgoingReference,
+    `Transferência ${purposeLabel} para ${recipientPublicId}`,
+  );
+
+  try {
+    // Depois creditamos o destinatário.
+    await ledger(
+      recipient.id,
+      input.purpose === "DEPOSIT"
+        ? "TRANSFER_RECEIVE_DEPOSIT"
+        : "TRANSFER_RECEIVE_WITHDRAWAL",
+      amount,
+      incomingReference,
+      `Transferência recebida ${purposeLabel} de ${recipientPublicId}`,
+    );
+  } catch (error) {
+    // Se o crédito falhar, devolvemos o valor ao remetente.
+    await ledger(
+      userId,
+      "TRANSFER_ROLLBACK",
+      amount,
+      `${baseReference}-ROLLBACK`,
+      `Estorno de transferência ${baseReference}`,
+    );
+
+    throw error;
+  }
+
+  await notify(
+    recipient.id,
+    "💸 Transferência recebida",
+    `Recebeu ${amount.toFixed(2)} MZN ${purposeLabel}.`,
+  );
+
+  await notify(
+    userId,
+    "✅ Transferência realizada",
+    `Transferiu ${amount.toFixed(2)} MZN ${purposeLabel} para ${recipientPublicId}.`,
+  );
+
+  return {
+    ok: true as const,
+    message: `Transferência de ${amount.toFixed(2)} MZN realizada com sucesso.`,
+  };
+}
+
+export async function getFinancialStats(userId: string) {
+  const profile = await assertNotBlocked(userId);
+
+  const { data: deposits, error: depositsError } =
+    await supabaseAdmin
+      .from("deposit_requests")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("status", "APPROVED");
+
+  if (depositsError) {
+    throw new Error(depositsError.message);
+  }
+
+  const totalInvested = (deposits ?? []).reduce(
+    (total, row) => total + Math.max(0, Number(row.amount ?? 0)),
+    0,
+  );
+
+  const { data: withdrawals, error: withdrawalsError } =
+    await supabaseAdmin
+      .from("withdrawals")
+      .select("amount")
+      .eq("user_id", userId)
+      .in("status", ["APPROVED", "COMPLETED"]);
+
+  if (withdrawalsError) {
+    throw new Error(withdrawalsError.message);
+  }
+
+  const totalWithdrawn = (withdrawals ?? []).reduce(
+    (total, row) => total + Math.max(0, Number(row.amount ?? 0)),
+    0,
+  );
+
+  const { data: transferOut, error: transferError } =
+    await supabaseAdmin
+      .from("ledger_transactions")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("type", "TRANSFER_SEND");
+
+  if (transferError) {
+    throw new Error(transferError.message);
+  }
+
+  const totalTransferred = (transferOut ?? []).reduce(
+    (total, row) => total + Math.abs(Number(row.amount ?? 0)),
+    0,
+  );
+
+  const { data: transactions, error: transactionsError } =
+    await supabaseAdmin
+      .from("ledger_transactions")
+      .select("amount,type,created_at")
+      .eq("user_id", userId)
+      .gt("amount", 0);
+
+  if (transactionsError) {
+    throw new Error(transactionsError.message);
+  }
+
+  const gainTransactions = (transactions ?? []).filter(
+    (row) =>
+      row.type !== "TRANSFER_RECEIVE_DEPOSIT" &&
+      row.type !== "TRANSFER_RECEIVE_WITHDRAWAL",
+  );
+
+  const now = new Date();
+
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(
+    startOfWeek.getDate() - startOfWeek.getDay(),
+  );
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const startOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1,
+  );
+
+  const sumSince = (start: Date) =>
+    gainTransactions.reduce((total, row) => {
+      const created = new Date(row.created_at);
+
+      if (created < start) return total;
+
+      return total + Math.max(0, Number(row.amount ?? 0));
+    }, 0);
+
+  return {
+    balance: Number(profile.balance ?? 0),
+    totalInvested,
+    totalWithdrawn,
+    totalTransferred,
+    totalMovimentado:
+      totalInvested + totalWithdrawn,
+
+    gainsToday: sumSince(startOfDay),
+    gainsWeek: sumSince(startOfWeek),
+    gainsMonth: sumSince(startOfMonth),
+  };
+}
+
 /* --------------------------- Operações do admin --------------------------- */
 
 export async function reviewDeposit(adminId: string, depositId: string, approve: boolean) {
