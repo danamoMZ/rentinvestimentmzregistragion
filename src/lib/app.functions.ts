@@ -438,3 +438,34 @@ export const processUsdtWithdrawalFn = createServerFn({
       data.withdrawalId,
     );
   });
+
+export const transferFundsFn = createServerFn({
+  method: "POST",
+})
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      recipientPublicId: string;
+      amount: number;
+      purpose: "DEPOSIT" | "WITHDRAWAL";
+      clientReference: string;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.transferFunds(
+      context.userId,
+      data,
+    );
+  });
+
+export const financialStatsFn = createServerFn({
+  method: "GET",
+})
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ops = await import("@/lib/ops.server");
+
+    return ops.getFinancialStats(context.userId);
+  });
