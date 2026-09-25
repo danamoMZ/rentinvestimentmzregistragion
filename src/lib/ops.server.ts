@@ -373,7 +373,14 @@ export async function requestWithdrawal(userId: string, amount: number) {
 
   const plan = await getActivePlan(userId);
   if (!plan) throw new Error("❌ Você não possui um plano ativo.");
-  if (Number(profile.balance) < amount) throw new Error("❌ Saldo insuficiente.");
+  const withdrawableBalance =
+  await getTransferableBalance(userId, true);
+
+if (withdrawableBalance < amount) {
+  throw new Error(
+    `❌ Saldo levantável insuficiente. Disponível: ${withdrawableBalance.toFixed(2)} MZN.`,
+  );
+}
 
   const { count } = await supabaseAdmin
     .from("withdrawals")
