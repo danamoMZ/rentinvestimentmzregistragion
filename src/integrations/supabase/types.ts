@@ -98,6 +98,95 @@ export type Database = {
         }
         Relationships: []
       }
+      binance_events: {
+        Row: {
+          address: string | null
+          amount_usdt: number | null
+          binance_withdrawal_id: string | null
+          client_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          message: string | null
+          network: string | null
+          response: Json | null
+          status: string | null
+          txid: string | null
+          withdrawal_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          amount_usdt?: number | null
+          binance_withdrawal_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          network?: string | null
+          response?: Json | null
+          status?: string | null
+          txid?: string | null
+          withdrawal_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          amount_usdt?: number | null
+          binance_withdrawal_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          network?: string | null
+          response?: Json | null
+          status?: string | null
+          txid?: string | null
+          withdrawal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binance_events_withdrawal_id_fkey"
+            columns: ["withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "usdt_withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      binance_settings: {
+        Row: {
+          api_configured: boolean
+          asset: string
+          automatic_withdrawals: boolean
+          created_at: string
+          enabled: boolean
+          id: boolean
+          network: string
+          updated_at: string
+        }
+        Insert: {
+          api_configured?: boolean
+          asset?: string
+          automatic_withdrawals?: boolean
+          created_at?: string
+          enabled?: boolean
+          id?: boolean
+          network?: string
+          updated_at?: string
+        }
+        Update: {
+          api_configured?: boolean
+          asset?: string
+          automatic_withdrawals?: boolean
+          created_at?: string
+          enabled?: boolean
+          id?: boolean
+          network?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deposit_requests: {
         Row: {
           amount: number
@@ -636,6 +725,249 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      usdt_deposits: {
+        Row: {
+          amount_mzn: number
+          amount_usdt: number
+          confirmations: number
+          confirmed_at: string | null
+          created_at: string
+          credited_at: string | null
+          deposit_address: string
+          detected_at: string
+          exchange_rate: number
+          id: string
+          ledger_reference: string | null
+          network: string
+          recipient_address: string | null
+          sender_address: string | null
+          status: string
+          token: string
+          txid: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_mzn: number
+          amount_usdt: number
+          confirmations?: number
+          confirmed_at?: string | null
+          created_at?: string
+          credited_at?: string | null
+          deposit_address: string
+          detected_at?: string
+          exchange_rate: number
+          id?: string
+          ledger_reference?: string | null
+          network?: string
+          recipient_address?: string | null
+          sender_address?: string | null
+          status?: string
+          token?: string
+          txid: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_mzn?: number
+          amount_usdt?: number
+          confirmations?: number
+          confirmed_at?: string | null
+          created_at?: string
+          credited_at?: string | null
+          deposit_address?: string
+          detected_at?: string
+          exchange_rate?: number
+          id?: string
+          ledger_reference?: string | null
+          network?: string
+          recipient_address?: string | null
+          sender_address?: string | null
+          status?: string
+          token?: string
+          txid?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usdt_events: {
+        Row: {
+          amount_mzn: number | null
+          amount_usdt: number | null
+          created_at: string
+          deposit_id: string | null
+          event_type: string
+          id: string
+          message: string
+          txid: string | null
+          user_id: string | null
+          withdrawal_id: string | null
+        }
+        Insert: {
+          amount_mzn?: number | null
+          amount_usdt?: number | null
+          created_at?: string
+          deposit_id?: string | null
+          event_type: string
+          id?: string
+          message?: string
+          txid?: string | null
+          user_id?: string | null
+          withdrawal_id?: string | null
+        }
+        Update: {
+          amount_mzn?: number | null
+          amount_usdt?: number | null
+          created_at?: string
+          deposit_id?: string | null
+          event_type?: string
+          id?: string
+          message?: string
+          txid?: string | null
+          user_id?: string | null
+          withdrawal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usdt_events_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "usdt_deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usdt_events_withdrawal_id_fkey"
+            columns: ["withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "usdt_withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usdt_settings: {
+        Row: {
+          deposit_address: string
+          deposit_enabled: boolean
+          id: boolean
+          min_deposit_usdt: number
+          min_withdrawal_usdt: number
+          network: string
+          symbol: string
+          updated_at: string
+          usdt_mzn_rate: number
+          withdrawal_enabled: boolean
+        }
+        Insert: {
+          deposit_address?: string
+          deposit_enabled?: boolean
+          id?: boolean
+          min_deposit_usdt?: number
+          min_withdrawal_usdt?: number
+          network?: string
+          symbol?: string
+          updated_at?: string
+          usdt_mzn_rate?: number
+          withdrawal_enabled?: boolean
+        }
+        Update: {
+          deposit_address?: string
+          deposit_enabled?: boolean
+          id?: boolean
+          min_deposit_usdt?: number
+          min_withdrawal_usdt?: number
+          network?: string
+          symbol?: string
+          updated_at?: string
+          usdt_mzn_rate?: number
+          withdrawal_enabled?: boolean
+        }
+        Relationships: []
+      }
+      usdt_withdrawals: {
+        Row: {
+          admin_id: string | null
+          admin_note: string | null
+          amount_mzn: number
+          amount_usdt: number
+          binance_client_id: string | null
+          binance_response: Json | null
+          binance_withdrawal_id: string | null
+          completed_at: string | null
+          created_at: string
+          destination_address: string
+          exchange_rate: number
+          failed_at: string | null
+          failure_reason: string | null
+          fee_mzn: number
+          id: string
+          net_amount_mzn: number
+          network: string
+          processed_at: string | null
+          reviewed_at: string | null
+          sent_at: string | null
+          status: string
+          token: string
+          txid: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          admin_note?: string | null
+          amount_mzn: number
+          amount_usdt: number
+          binance_client_id?: string | null
+          binance_response?: Json | null
+          binance_withdrawal_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_address: string
+          exchange_rate: number
+          failed_at?: string | null
+          failure_reason?: string | null
+          fee_mzn?: number
+          id?: string
+          net_amount_mzn: number
+          network?: string
+          processed_at?: string | null
+          reviewed_at?: string | null
+          sent_at?: string | null
+          status?: string
+          token?: string
+          txid?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          admin_note?: string | null
+          amount_mzn?: number
+          amount_usdt?: number
+          binance_client_id?: string | null
+          binance_response?: Json | null
+          binance_withdrawal_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_address?: string
+          exchange_rate?: number
+          failed_at?: string | null
+          failure_reason?: string | null
+          fee_mzn?: number
+          id?: string
+          net_amount_mzn?: number
+          network?: string
+          processed_at?: string | null
+          reviewed_at?: string | null
+          sent_at?: string | null
+          status?: string
+          token?: string
+          txid?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_plans: {
         Row: {
