@@ -386,6 +386,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_tier: string
           avatar_url: string | null
           balance: number
           blocked: boolean
@@ -395,6 +396,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string
+          promotional_balance: number
           province: string
           public_id: string
           referral_code: string
@@ -403,6 +405,7 @@ export type Database = {
           wallet_number: string
         }
         Insert: {
+          account_tier?: string
           avatar_url?: string | null
           balance?: number
           blocked?: boolean
@@ -412,6 +415,7 @@ export type Database = {
           full_name?: string
           id: string
           phone?: string
+          promotional_balance?: number
           province?: string
           public_id: string
           referral_code: string
@@ -420,6 +424,7 @@ export type Database = {
           wallet_number?: string
         }
         Update: {
+          account_tier?: string
           avatar_url?: string | null
           balance?: number
           blocked?: boolean
@@ -429,6 +434,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string
+          promotional_balance?: number
           province?: string
           public_id?: string
           referral_code?: string
@@ -517,6 +523,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      promotional_ledger_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string
+          id: string
+          reference: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          description: string
+          id?: string
+          reference?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string
+          id?: string
+          reference?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recruit_task_claims: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          task_date: string
+          task_index: number
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          task_date: string
+          task_index: number
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          task_date?: string
+          task_index?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       referrals: {
         Row: {
@@ -1096,6 +1165,10 @@ export type Database = {
         Returns: boolean
       }
       process_due_donations: { Args: never; Returns: number }
+      purchase_plan_with_balances: {
+        Args: { _plan_id: number; _user_id: string }
+        Returns: Json
+      }
       redeem_promo_code: {
         Args: { _code: string; _ip_hash?: string }
         Returns: Json
