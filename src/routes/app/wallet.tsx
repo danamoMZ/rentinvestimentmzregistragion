@@ -213,20 +213,14 @@ function WalletPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="ledger">
-        <TabsList className="w-full">
-          <TabsTrigger value="ledger" className="flex-1">
-            Movimentos
-          </TabsTrigger>
-          <TabsTrigger value="withdrawals" className="flex-1">
-            Saques
-          </TabsTrigger>
-          <TabsTrigger value="deposits" className="flex-1">
-            Depósitos
-          </TabsTrigger>
+      <Tabs defaultValue="deposits">
+        <TabsList className="w-full rounded-3xl">
+          <TabsTrigger value="deposits" className="flex-1">RECARREGAR</TabsTrigger>
+          <TabsTrigger value="withdrawals" className="flex-1">RETIRAR</TabsTrigger>
+          <TabsTrigger value="ledger" className="flex-1">GANHOS</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="ledger" className="surface-card mt-3 divide-y divide-border p-4">
+        <TabsContent value="ledger" className="surface-card mt-3 divide-y divide-border rounded-[2rem] p-4">
           {(ledger ?? []).length === 0 && <Empty text="Sem movimentos." />}
           {(ledger ?? []).map((tx) => (
             <div key={tx.id} className="flex items-center justify-between gap-3 py-3">
@@ -245,7 +239,7 @@ function WalletPage() {
           ))}
         </TabsContent>
 
-        <TabsContent value="withdrawals" className="surface-card mt-3 divide-y divide-border p-4">
+        <TabsContent value="withdrawals" className="surface-card mt-3 divide-y divide-border rounded-[2rem] p-4">
           {(withdrawals ?? []).length === 0 && <Empty text="Sem pedidos de saque." />}
           {(withdrawals ?? []).map((w) => (
             <div key={w.id} className="flex items-center justify-between gap-3 py-3">
@@ -260,7 +254,7 @@ function WalletPage() {
           ))}
         </TabsContent>
 
-        <TabsContent value="deposits" className="surface-card mt-3 divide-y divide-border p-4">
+        <TabsContent value="deposits" className="surface-card mt-3 divide-y divide-border rounded-[2rem] p-4">
           {(deposits ?? []).length === 0 && <Empty text="Sem depósitos." />}
           {(deposits ?? []).map((d) => (
             <div key={d.id} className="flex items-center justify-between gap-3 py-3">
