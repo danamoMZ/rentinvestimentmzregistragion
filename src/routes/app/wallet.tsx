@@ -93,8 +93,8 @@ function WalletPage() {
   const fee = Math.round(value * 0.10 * 100) / 100;
 
   const submit = async () => {
-    if (!Number.isFinite(value) || value < 125) {
-      toast.error("O valor mínimo de saque é 125 MZN.");
+    if (!Number.isFinite(value) || value < 20) {
+      toast.error("O primeiro saque pode ser feito a partir de 20 MZN; depois, o mínimo é 150 MZN.");
       return;
     }
     if (value > 18000) {
