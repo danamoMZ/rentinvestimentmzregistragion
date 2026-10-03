@@ -156,7 +156,14 @@ const { data: isAdmin } = useIsAdmin();
   );
   }
 
-  if (profile && profile.platform_version !== 2 && !isAdmin) {
+  // O novo login usa exclusivamente o identificador interno @blueorigin.mz.
+  // Enquanto a migração do Supabase não tiver sido aplicada no ambiente publicado,
+  // uma conta nova pode ainda estar com platform_version=1. Não bloquear essa conta
+  // por causa desse valor, mas continuar a rejeitar contas antigas.
+  const isNewBlueOriginAccount =
+    session.user.email?.toLowerCase().endsWith("@blueorigin.mz") === true;
+
+  if (profile && profile.platform_version !== 2 && !isAdmin && !isNewBlueOriginAccount) {
     void supabase.auth.signOut().then(() => {
       navigate({ to: "/auth", replace: true });
     });
