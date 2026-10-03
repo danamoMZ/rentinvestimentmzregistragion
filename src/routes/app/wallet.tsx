@@ -125,6 +125,13 @@ function WalletPage() {
   </div>
 
   <div className="surface-card bg-[image:var(--gradient-soft)] p-5">
+    {profile?.account_tier === "RECRUTA" && (
+      <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
+        <p className="text-xs font-semibold text-primary">RECRUTA</p>
+        <p className="mt-1 text-sm">Saldo para levantamento: <strong>{MZN(profile?.balance ?? 0)}</strong></p>
+        <p className="text-sm">Crédito exclusivo para VIPs: <strong>{MZN(profile?.promotional_balance ?? 0)}</strong></p>
+      </div>
+    )}
     <p className="text-xs uppercase tracking-widest text-muted-foreground">
       Saldo disponível
     </p>
