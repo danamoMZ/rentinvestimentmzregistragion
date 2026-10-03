@@ -72,7 +72,7 @@ function Team() {
         {["NÍVEL A","NÍVEL B","NÍVEL C","GERAL"].map((level,index)=><span key={level} className={`rounded-full border px-2 py-3 text-center text-xs font-black ${index===0?"border-primary text-primary":"border-border text-muted-foreground"}`}>{level}</span>)}
       </div>
       <section className="mx-4 grid grid-cols-2 gap-3">
-        <Stat label="DEPÓSITO TOTAL" value={MZN(totalDeposits)} />
+        <Stat label="DEPÓSITO TOTAL" value={MZN(0)} />
         <Stat label="SAQUE TOTAL" value={MZN(0)} />
         <Stat label="TAREFAS CONCLUÍDAS" value="0" />
         <Stat label="COMISSÃO" value={MZN(earned)} />
