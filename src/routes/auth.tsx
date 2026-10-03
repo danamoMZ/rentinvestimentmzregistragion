@@ -38,21 +38,21 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       {
-        title: "Entrar ou registar — RENT INVESTIMENT",
+        title: "Entrar ou registar — BLUE ORIGIN",
       },
       {
         name: "description",
         content:
-          "Aceda à sua conta RENT INVESTIMENT ou crie uma nova em segundos.",
+          "Aceda à sua conta BLUE ORIGIN ou crie uma nova em segundos.",
       },
       {
         property: "og:title",
-        content: "Entrar ou registar — RENT INVESTIMENT",
+        content: "Entrar ou registar — BLUE ORIGIN",
       },
       {
         property: "og:description",
         content:
-          "Aceda à sua conta RENT INVESTIMENT ou crie uma nova em segundos.",
+          "Aceda à sua conta BLUE ORIGIN ou crie uma nova em segundos.",
       },
     ],
   }),
@@ -76,10 +76,8 @@ function AuthPage() {
   );
 
   const [form, setForm] = useState({
-    full_name: "",
     email: "",
     phone: "",
-    wallet_number: "",
     referral_code: ref ?? "",
     password: "",
     confirm_password: "",
@@ -149,17 +147,8 @@ function AuthPage() {
        */
 
       if (mode === "register") {
-        const nome =
-          form.full_name.trim();
-
         const tel =
           normalizePhone(form.phone);
-
-        if (!nome) {
-          throw new Error(
-            "Informe o seu nome de utilizador.",
-          );
-        }
 
         if (tel.length !== 9) {
           throw new Error(
@@ -183,7 +172,7 @@ function AuthPage() {
 
             options: {
               data: {
-                full_name: nome,
+                full_name: "RECRUTA",
                 phone: `+258${tel}`,
                 wallet_number: tel,
                 referral_code:
@@ -225,7 +214,7 @@ function AuthPage() {
         }
 
         toast.success(
-          "Conta criada com sucesso! Bónus de 50 MZN aplicado.",
+          "Conta criada com sucesso! Recebeu 200 MZN de crédito exclusivo para VIPs.",
         );
 
         navigate({
@@ -448,14 +437,14 @@ function AuthPage() {
 
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "register"
-              ? "Crie a sua conta RENT INVESTIMENT."
+              ? "Crie a sua conta BLUE ORIGIN e entre como RECRUTA."
               : mode ===
                   "forgot-password"
                 ? "Enviaremos um código para o seu e-mail ou telefone."
                 : mode ===
                     "reset-password"
                   ? "Defina a sua nova palavra-passe de acesso."
-                  : "Aceda ao seu painel RENT INVESTIMENT."}
+                  : "Aceda ao seu painel BLUE ORIGIN."}
           </p>
 
           {/* ==========================
@@ -473,21 +462,6 @@ function AuthPage() {
 
             {mode === "register" && (
               <>
-
-                {/* NOME DE UTILIZADOR */}
-
-                <Field
-                  id="full_name"
-                  label="Nome de utilizador"
-                  value={
-                    form.full_name
-                  }
-                  onChange={set(
-                    "full_name",
-                  )}
-                  required
-                  placeholder="ex: Carlitos"
-                />
 
                 {/* NÚMERO DE TELEFONE */}
 
@@ -617,7 +591,7 @@ function AuthPage() {
                   <KeyRound className="size-4 shrink-0" />
 
                   <span>
-                    Enviaremos um código oficial da equipa RENT INVESTIMENT.
+                    Enviaremos um código oficial da equipa BLUE ORIGIN.
                   </span>
 
                 </div>
