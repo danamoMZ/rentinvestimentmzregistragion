@@ -83,7 +83,7 @@ const [stats, setStats] = useState<Awaited<
     enabled: !!userId,
     queryFn: async () => {
       const { count } = await supabase
-        .from("task_claims")
+        .from(profile?.account_tier === "RECRUTA" ? "recruit_task_claims" : "task_claims")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId!)
         .eq("task_date", todayMaputo());
