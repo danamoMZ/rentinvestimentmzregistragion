@@ -85,3 +85,11 @@ function Team() {
   );
 }
 
+
+function Summary({ label, value }: { label: string; value: string }) {
+  return <div className="px-5"><p className="text-sm font-bold text-white/70">{label}</p><p className="mt-2 text-3xl font-black">{value}</p></div>;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return <div className="min-h-32 rounded-[2rem] border border-border bg-[#111b17] p-6"><p className="text-xs font-extrabold text-muted-foreground">{label}</p><p className="mt-5 text-2xl font-black">{value}</p></div>;
+}
