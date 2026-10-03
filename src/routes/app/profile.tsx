@@ -254,7 +254,9 @@ function ProfilePage() {
             <p className="font-semibold">
               {isAdmin
                 ? "Administrador"
-                : "Utilizador"}
+                : profile?.account_tier === "RECRUTA"
+                  ? "RECRUTA"
+                  : profile?.account_tier ?? "Utilizador"}
             </p>
           </div>
         </div>
