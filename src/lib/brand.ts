@@ -13,17 +13,17 @@ export const BRAND_NAME = "BLUE ORIGIN";
 export const BRAND_LOGO = logoAsset.url;
 
 const planImages = [
+  orbitalFactory.url,
+  newShepardCrew.url,
+  newShepardBooster.url,
+  blueRing.url,
+  newGlenn.url,
   blueMoonMark1.url,
   blueMoonMark2.url,
   blueMoonPathfinder.url,
-  newGlenn.url,
   blueRing.url,
-  newShepardCrew.url,
-  newShepardBooster.url,
-  newShepardCapsule.url,
+  newGlenn.url,
   orbitalFactory.url,
-  blueRing.url,
-  newGlenn.url,
 ] as const;
 
 export function getPlanImage(index: number) {
