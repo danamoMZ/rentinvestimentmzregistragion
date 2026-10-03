@@ -135,25 +135,51 @@ export async function purchasePlan(userId: string, planId: number) {
     throw new Error("Não foi possível verificar o seu saldo.");
   }
 
-  if (currentBalance < price) {
+  const { data: fullProfile, error: fullProfileError } = await supabaseAdmin
+    .from("profiles")
+    .select("balance, promotional_balance")
+    .eq("id", userId)
+    .single();
+  if (fullProfileError) throw new Error(fullProfileError.message);
+
+  const cashBalance = Number(fullProfile.balance ?? 0);
+  const promotionalBalance = Number(fullProfile.promotional_balance ?? 0);
+  if (cashBalance + promotionalBalance < price) {
     throw new Error(
-      `Saldo insuficiente. O ${plan.name} custa ${price} MZN e o seu saldo actual é ${currentBalance} MZN. Deposite ou recarregue o seu saldo para comprar este plano.`,
+      `Saldo insuficiente. O ${plan.name} custa ${price} MZN. Crédito VIP: ${promotionalBalance.toFixed(2)} MZN; saldo levantável: ${cashBalance.toFixed(2)} MZN.`,
     );
   }
 
-  /*
-   * O débito é feito no servidor através do apply_ledger.
-   * Não confiamos apenas na verificação de saldo feita pela interface.
-   */
+  const promoUsed = Math.min(promotionalBalance, price);
+  const cashUsed = price - promoUsed;
   const purchaseReference = `PLAN-${plan.id}-${userId}-${Date.now()}`;
 
-  await ledger(
-    userId,
-    "PLAN_PURCHASE",
-    -price,
-    purchaseReference,
-    `Compra do plano ${plan.name} — -${price} MZN`,
-  );
+  if (promoUsed > 0) {
+    const { error: promoError } = await supabaseAdmin
+      .from("profiles")
+      .update({ promotional_balance: promotionalBalance - promoUsed })
+      .eq("id", userId);
+    if (promoError) throw new Error(promoError.message);
+    await supabaseAdmin.from("promotional_ledger_transactions").insert({
+      user_id: userId,
+      type: "PLAN_PURCHASE",
+      amount: -promoUsed,
+      balance_before: promotionalBalance,
+      balance_after: promotionalBalance - promoUsed,
+      reference: `${purchaseReference}-PROMO`,
+      description: `Crédito promocional usado no ${plan.name}`,
+    });
+  }
+
+  if (cashUsed > 0) {
+    await ledger(
+      userId,
+      "PLAN_PURCHASE",
+      -cashUsed,
+      `${purchaseReference}-CASH`,
+      `Compra do plano ${plan.name} — -${cashUsed} MZN`,
+    );
+  }
 
   try {
     const start = todayMaputo();
@@ -368,11 +394,18 @@ export async function submitDeposit(
 export async function requestWithdrawal(userId: string, amount: number) {
   const profile = await assertNotBlocked(userId);
   if (!Number.isFinite(amount)) throw new Error("Valor inválido.");
-  if (amount < 125) throw new Error("O valor mínimo de saque é 125 MZN.");
+  const { count: completedWithdrawals } = await supabaseAdmin
+    .from("withdrawals")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .in("status", ["APPROVED", "COMPLETED"]);
+  const minimumWithdrawal = (completedWithdrawals ?? 0) === 0 ? 20 : 150;
+  if (amount < minimumWithdrawal) throw new Error(`O valor mínimo deste saque é ${minimumWithdrawal} MZN.`);
   if (amount > 18000) throw new Error("O valor máximo de saque é 18.000 MZN.");
 
   const plan = await getActivePlan(userId);
-  if (!plan) throw new Error("❌ Você não possui um plano ativo.");
+  const profileTier = (profile as { account_tier?: string }).account_tier ?? "USER";
+  if (!plan && profileTier !== "RECRUTA") throw new Error("É necessário ter um VIP ativo para sacar.");
   const withdrawableBalance =
   await getTransferableBalance(userId, true);
 
