@@ -1,5 +1,4 @@
-import logoAsset from "@/assets/ri-logo.jpg.asset.json";
-const logo = logoAsset.url;
+import { BRAND_LOGO, BRAND_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 export function Logo({
@@ -14,8 +13,8 @@ export function Logo({
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <img
-        src={logo}
-        alt="RENT INVESTIMENT"
+        src={BRAND_LOGO}
+        alt={BRAND_NAME}
         width={size}
         height={size}
         style={{ width: size, height: size }}
@@ -23,7 +22,7 @@ export function Logo({
       />
       {withText && (
         <span className="text-base font-extrabold leading-none tracking-tight">
-          RENT<span className="text-primary"> INVESTIMENT</span>
+          BLUE<span className="text-primary"> ORIGIN</span>
         </span>
       )}
     </div>
