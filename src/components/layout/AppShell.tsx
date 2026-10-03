@@ -157,23 +157,10 @@ const { data: isAdmin } = useIsAdmin();
   }
 
   if (profile && profile.platform_version !== 2 && !isAdmin) {
-    const handleLegacyLogout = async () => {
-      await supabase.auth.signOut();
+    void supabase.auth.signOut().then(() => {
       navigate({ to: "/auth", replace: true });
-    };
-
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-7 text-center shadow-xl">
-          <Logo size={56} className="justify-center" />
-          <h1 className="mt-6 text-2xl font-extrabold">Nova plataforma BLUE ORIGIN</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Esta conta pertence à versão anterior da plataforma e não tem acesso à nova implementação.
-          </p>
-          <Button className="mt-6 w-full" onClick={handleLegacyLogout}>Sair</Button>
-        </div>
-      </div>
-    );
+    });
+    return null;
   }
 
   if (profile?.blocked === true) {
