@@ -288,13 +288,36 @@ export async function purchasePlan(userId: string, planId: number) {
      * tentamos devolver o dinheiro através do ledger.
      */
     try {
-      await ledger(
-        userId,
-        "PLAN_PURCHASE_REFUND",
-        price,
-        `PLAN-REFUND-${plan.id}-${Date.now()}`,
-        `Estorno da compra do ${plan.name} devido a falha na activação.`,
-      );
+      if (promoUsed > 0) {
+        const { data: rollbackProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("promotional_balance")
+          .eq("id", userId)
+          .maybeSingle();
+        const currentPromo = Number(rollbackProfile?.promotional_balance ?? 0);
+        await supabaseAdmin
+          .from("profiles")
+          .update({ promotional_balance: currentPromo + promoUsed })
+          .eq("id", userId);
+        await supabaseAdmin.from("promotional_ledger_transactions").insert({
+          user_id: userId,
+          type: "PLAN_PURCHASE_REFUND",
+          amount: promoUsed,
+          balance_before: currentPromo,
+          balance_after: currentPromo + promoUsed,
+          reference: `PLAN-PROMO-REFUND-${plan.id}-${Date.now()}`,
+          description: `Estorno do crédito promocional do ${plan.name}`,
+        });
+      }
+      if (cashUsed > 0) {
+        await ledger(
+          userId,
+          "PLAN_PURCHASE_REFUND",
+          cashUsed,
+          `PLAN-REFUND-${plan.id}-${Date.now()}`,
+          `Estorno da compra do ${plan.name} devido a falha na activação.`,
+        );
+      }
     } catch (refundError) {
       console.error(
         "Falha crítica ao estornar compra do plano:",
