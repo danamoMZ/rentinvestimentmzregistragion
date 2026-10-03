@@ -117,15 +117,16 @@ const balance = Number(profile?.balance ?? 0);
     return;
   }
 
-  if (balance < Number(plan.price)) {
+  const availableForPlan = balance + promotionalBalance;
+  if (availableForPlan < Number(plan.price)) {
     toast.error(
-      `Saldo insuficiente. O ${plan.name} custa ${MZN(plan.price)} e o seu saldo actual é ${MZN(balance)}.`,
+      `Saldo insuficiente. O VIP ${plan.id} custa ${MZN(plan.price)}. Disponível para VIPs: ${MZN(availableForPlan)}.`,
     );
     return;
   }
 
   const confirmed = window.confirm(
-    `Comprar ${plan.name} por ${MZN(plan.price)} usando o seu saldo?\n\nSaldo actual: ${MZN(balance)}\nSaldo depois da compra: ${MZN(balance - Number(plan.price))}`,
+    `Comprar ${plan.name} por ${MZN(plan.price)} usando o seu saldo?\n\nSaldo actual: ${MZN(balance)}\nSaldo levantável depois da compra: ${MZN(Math.max(0, balance - Math.max(0, Number(plan.price) - promotionalBalance)))}`,
   );
 
   if (!confirmed) return;
@@ -255,7 +256,7 @@ const balance = Number(profile?.balance ?? 0);
     disabled={
       !!pending ||
       buyingPlanId === plan.id ||
-      balance < Number(plan.price)
+      balance + promotionalBalance < Number(plan.price)
     }
     onClick={() => buyWithBalance(plan)}
   >
@@ -267,8 +268,8 @@ const balance = Number(profile?.balance ?? 0);
     ) : (
       <>
         <Wallet className="mr-2 size-4" />
-        {balance >= Number(plan.price)
-          ? "Comprar com saldo"
+        {balance + promotionalBalance >= Number(plan.price)
+          ? "Ativar VIP"
           : "Saldo insuficiente"}
       </>
     )}
