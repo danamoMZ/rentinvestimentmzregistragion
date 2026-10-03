@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const depositFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { planId: number; senderNumber: string; transactionId: string; proofPath: string | null }) => data,
+    (data: { amount: number; senderNumber: string; transactionId: string; proofPath: string | null }) => data,
   )
   .handler(async ({ data, context }) => {
     const ops = await import("@/lib/ops.server");
