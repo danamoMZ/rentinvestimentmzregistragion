@@ -277,6 +277,17 @@ export const redeemPromoCodeFn = createServerFn({ method: "POST" })
     return ops.redeemPromoCode(context.supabase, context.userId, data.code, ipHash);
   });
 
+export const startTaskWatchFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { taskIndex: number }) => data)
+  .handler(async ({ data, context }) => {
+    const { data: result, error } = await context.supabase.rpc("start_task_watch", {
+      _task_index: data.taskIndex,
+    });
+    if (error) throw new Error(error.message);
+    return result;
+  });
+
 export const grantShareRewardFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { publicId: string }) => data)
