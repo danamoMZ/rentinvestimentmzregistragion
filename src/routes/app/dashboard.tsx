@@ -118,10 +118,10 @@ function Dashboard() {
       }
     | undefined;
 
-  const activeNode = planRow?.name ?? "Estagiário";
+  const activeNode = planRow?.name ?? "RECRUTA";
 
   const nodes = useMemo(
-    () => ["Estagiário", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5", "VIP6", "VIP7", "VIP8"],
+    () => ["RECRUTA", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5", "VIP6", "VIP7", "VIP8"],
     [],
   );
 
@@ -237,7 +237,7 @@ function Dashboard() {
             return (
               <Link
                 key={node}
-                to={node === "Estagiário" ? "/app/tasks" : "/app/plans"}
+                to={node === "RECRUTA" ? "/app/tasks" : "/app/plans"}
                 className={`blue-node relative min-h-[112px] rounded-3xl p-4 transition-transform active:scale-[0.98] ${active ? "blue-node-active" : ""}`}
               >
                 {active && (
