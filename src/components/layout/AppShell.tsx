@@ -25,110 +25,47 @@ import { useDeviceNotifications } from "@/hooks/use-device-notifications";
 import { Logo } from "@/components/brand/Logo";
 import { SupportMenu } from "@/components/layout/SupportMenu";
 import { WelcomeGuide } from "@/components/layout/WelcomeGuide";
-
 import { MZN } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
-  {
-    to: "/app/dashboard",
-    label: "Início",
-    icon: LayoutDashboard,
-  },
-  {
-    to: "/app/plans",
-    label: "Planos",
-    icon: Layers,
-  },
-  {
-    to: "/app/tasks",
-    label: "Tarefas",
-    icon: CheckSquare,
-  },
-  {
-    to: "/app/game",
-    label: "Jogo",
-    icon: Gamepad2,
-  },
-  {
-    to: "/app/wallet",
-    label: "Carteira",
-    icon: Wallet,
-  },
-  {
-    to: "/app/team",
-    label: "Equipa",
-    icon: Users,
-  },
+  { to: "/app/dashboard", label: "LAR", icon: LayoutDashboard },
+  { to: "/app/tasks", label: "TAREFAS", icon: CheckSquare },
+  { to: "/app/plans", label: "PACOTES", icon: Layers },
+  { to: "/app/profile", label: "CONTA", icon: User },
 ] as const;
 
 const MORE = [
-  {
-    to: "/app/affiliate",
-    label: "Afiliados",
-    icon: Megaphone,
-  },
-  {
-    to: "/app/donations",
-    label: "Doações",
-    icon: HeartHandshake,
-  },
-  {
-    to: "/app/support",
-    label: "Suporte",
-    icon: LifeBuoy,
-  },
-  {
-    to: "/app/notifications",
-    label: "Notificações",
-    icon: Bell,
-  },
-  {
-    to: "/app/profile",
-    label: "Perfil",
-    icon: User,
-  },
+  { to: "/app/wallet", label: "Carteira", icon: Wallet },
+  { to: "/app/team", label: "Equipa", icon: Users },
+  { to: "/app/affiliate", label: "Afiliados", icon: Megaphone },
+  { to: "/app/donations", label: "Doações", icon: HeartHandshake },
+  { to: "/app/support", label: "Suporte", icon: LifeBuoy },
+  { to: "/app/notifications", label: "Notificações", icon: Bell },
+  { to: "/app/game", label: "Jogo", icon: Gamepad2 },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, loading, userId } = useSession();
-const navigate = useNavigate();
-
-const {
-  data: profile,
-  isLoading: profileLoading,
-  refetch: refetchProfile,
-} = useProfile();
-
-const { data: isAdmin } = useIsAdmin();
-
-  const pathname = useRouterState({
-    select: (s) => s.location.pathname,
-  });
+  const navigate = useNavigate();
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfile();
+  const { data: isAdmin } = useIsAdmin();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useDeviceNotifications();
 
   useEffect(() => {
     if (!loading && !session) {
-      navigate({
-        to: "/auth",
-        replace: true,
-      });
+      navigate({ to: "/auth", replace: true });
     }
   }, [loading, session, navigate]);
 
   useEffect(() => {
-  if (!userId || !session) return;
-
-  const interval = window.setInterval(() => {
-    refetchProfile();
-  }, 5000);
-
-  return () => {
-    window.clearInterval(interval);
-  };
-}, [userId, session, refetchProfile]);
+    if (!userId || !session) return;
+    const interval = window.setInterval(() => refetchProfile(), 5000);
+    return () => window.clearInterval(interval);
+  }, [userId, session, refetchProfile]);
 
   const { data: unread } = useQuery({
     queryKey: ["unread", userId],
@@ -137,172 +74,89 @@ const { data: isAdmin } = useIsAdmin();
     queryFn: async () => {
       const { count } = await supabase
         .from("notifications")
-        .select("id", {
-          count: "exact",
-          head: true,
-        })
+        .select("id", { count: "exact", head: true })
         .eq("read", false)
         .or(`user_id.eq.${userId},user_id.is.null`);
-
       return count ?? 0;
     },
   });
 
   if (loading || !session || profileLoading) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Loader2 className="size-6 animate-spin text-primary" />
-    </div>
-  );
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="size-7 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  // O novo login usa exclusivamente o identificador interno @blueorigin.mz.
-  // Enquanto a migração do Supabase não tiver sido aplicada no ambiente publicado,
-  // uma conta nova pode ainda estar com platform_version=1. Não bloquear essa conta
-  // por causa desse valor, mas continuar a rejeitar contas antigas.
   const isNewBlueOriginAccount =
     session.user.email?.toLowerCase().endsWith("@blueorigin.mz") === true;
 
   if (profile && profile.platform_version !== 2 && !isAdmin && !isNewBlueOriginAccount) {
-    void supabase.auth.signOut().then(() => {
-      navigate({ to: "/auth", replace: true });
-    });
+    void supabase.auth.signOut().then(() => navigate({ to: "/auth", replace: true }));
     return null;
   }
 
   if (profile?.blocked === true) {
-  const handleBlockedLogout = async () => {
-    await supabase.auth.signOut();
+    const handleBlockedLogout = async () => {
+      await supabase.auth.signOut();
+      navigate({ to: "/auth", replace: true });
+    };
 
-    navigate({
-      to: "/auth",
-      replace: true,
-    });
-  };
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
-      <div className="w-full max-w-md">
-        <div className="overflow-hidden rounded-3xl border border-destructive/30 bg-card shadow-2xl">
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+        <div className="w-full max-w-md overflow-hidden rounded-3xl border border-destructive/30 bg-card shadow-2xl">
           <div className="bg-destructive px-6 py-8 text-center text-destructive-foreground">
             <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-white/15">
               <ShieldAlert className="size-10" />
             </div>
-
-            <h1 className="mt-5 text-3xl font-extrabold">
-              Conta bloqueada
-            </h1>
-
-            <p className="mt-2 text-sm opacity-90">
-              O acesso à sua conta foi temporariamente bloqueado.
-            </p>
+            <h1 className="mt-5 text-3xl font-extrabold">Conta bloqueada</h1>
+            <p className="mt-2 text-sm opacity-90">O acesso à sua conta foi temporariamente bloqueado.</p>
           </div>
-
           <div className="space-y-5 p-6 text-center">
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4">
-              <p className="text-sm font-semibold text-foreground">
-                O acesso à plataforma está impedido.
-              </p>
-
+              <p className="text-sm font-semibold">O acesso à plataforma está impedido.</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Não pode utilizar o saldo, planos, tarefas, jogos,
-                carteira ou outras funcionalidades enquanto a conta
-                permanecer bloqueada.
+                Não pode utilizar o saldo, planos, tarefas, jogos, carteira ou outras funcionalidades enquanto a conta permanecer bloqueada.
               </p>
             </div>
-
-            <div className="rounded-2xl border border-border bg-secondary p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Estado da conta
-              </p>
-
-              <p className="mt-1 text-lg font-bold text-destructive">
-                BLOQUEADA
-              </p>
-            </div>
-
-            <Button
-              type="button"
-              variant="destructive"
-              className="w-full gap-2 rounded-xl py-6 text-base font-bold"
-              onClick={handleBlockedLogout}
-            >
+            <Button type="button" variant="destructive" className="w-full gap-2 rounded-xl py-6 text-base font-bold" onClick={handleBlockedLogout}>
               <LogOut className="size-5" />
               Sair da conta
             </Button>
-
-            <p className="text-xs leading-5 text-muted-foreground">
-              Se acredita que este bloqueio foi feito por engano,
-              entre em contacto com o suporte da plataforma.
-            </p>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
   }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-
-    navigate({
-      to: "/auth",
-      replace: true,
-    });
+    navigate({ to: "/auth", replace: true });
   };
 
   const allLinks = [...NAV, ...MORE];
 
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0">
-
-      {/* =========================
-          CABEÇALHO SUPERIOR
-          ========================= */}
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-card/90 backdrop-blur-xl">
+      <header className="hidden border-b border-border/70 bg-card/90 backdrop-blur-xl lg:block">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-
-          {/* LOGO */}
-          <Link
-            to="/app/dashboard"
-            className="shrink-0"
-            aria-label="Ir para o início"
-          >
+          <Link to="/app/dashboard" className="shrink-0" aria-label="Ir para o início">
             <Logo size={36} />
           </Link>
 
-          {/* AÇÕES DO CABEÇALHO */}
           <div className="flex items-center gap-2">
-
-            {/* SALDO */}
-            <div className="hidden rounded-lg border border-border bg-secondary px-3 py-1.5 text-right sm:block">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Saldo
-              </p>
-
-              <p className="text-sm font-bold text-foreground">
-                {MZN(profile?.balance)}
-              </p>
+            <div className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-right">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo</p>
+              <p className="text-sm font-bold">{MZN(profile?.balance)}</p>
             </div>
 
-            {/* SUPORTE */}
             <SupportMenu />
 
-            {/* NOTIFICAÇÕES */}
-            <Link
-              to="/app/notifications"
-              className="relative shrink-0"
-              aria-label="Abrir notificações"
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                aria-label="Notificações"
-              >
+            <Link to="/app/notifications" className="relative">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Notificações">
                 <Bell className="size-5" />
               </Button>
-
               {!!unread && (
                 <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                   {unread > 9 ? "9+" : unread}
@@ -310,148 +164,83 @@ const { data: isAdmin } = useIsAdmin();
               )}
             </Link>
 
-            {/* ADMIN */}
             {isAdmin && (
               <Link to="/admin">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 rounded-full"
-                >
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-full">
                   <Shield className="size-4" />
-
-                  <span className="hidden sm:inline">
-                    Admin
-                  </span>
+                  Admin
                 </Button>
               </Link>
             )}
 
-            {/* PERFIL */}
-            <Link
-              to="/app/profile"
-              aria-label="Abrir meu perfil"
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[image:var(--gradient-soft)] shadow-md transition-transform hover:shadow-lg active:scale-95"
-            >
-              <User className="size-6 text-primary-foreground" />
+            <Link to="/app/profile" aria-label="Abrir meu perfil" className="flex size-11 items-center justify-center rounded-full bg-secondary">
+              <User className="size-6 text-primary" />
             </Link>
 
-            {/* SAIR */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSignOut}
-              aria-label="Sair"
-              className="rounded-full"
-            >
+            <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sair" className="rounded-full">
               <LogOut className="size-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* =========================
-          CONTEÚDO PRINCIPAL
-          ========================= */}
-      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6">
-
-        {/* MENU DESKTOP */}
+      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4 lg:py-6">
         <aside className="hidden w-56 shrink-0 lg:block">
-          <nav className="sticky top-24 space-y-1">
-
+          <nav className="sticky top-6 space-y-1">
             {allLinks.map((item) => {
               const active = pathname.startsWith(item.to);
-
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all",
                     active
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
                   <item.icon className="size-4 shrink-0" />
-
                   <span>{item.label}</span>
                 </Link>
               );
             })}
-
           </nav>
         </aside>
 
-        {/* PÁGINA */}
-        <main className="min-w-0 flex-1">
-          {children}
-        </main>
-
+        <main className="min-w-0 flex-1">{children}</main>
         <WelcomeGuide />
       </div>
 
-      {/* =========================
-          MENU INFERIOR MOBILE
-          ========================= */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-card/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 shadow-[0_-10px_35px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:hidden"
         aria-label="Navegação principal"
       >
-        <div className="mx-auto grid w-full max-w-lg grid-cols-6 px-1 pb-[env(safe-area-inset-bottom)]">
-
+        <div className="mx-auto grid h-[78px] w-full max-w-lg grid-cols-4 px-3 pb-[env(safe-area-inset-bottom)]">
           {NAV.map((item) => {
             const active = pathname.startsWith(item.to);
-
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 aria-current={active ? "page" : undefined}
-                className="group relative flex min-w-0 flex-col items-center justify-center py-2.5 text-center"
-              >
-
-                {/* =========================
-                    BOTÃO ATIVO — CIRCULAR
-                    ========================= */}
-                {active ? (
-                  <>
-                    <span
-                      className="flex size-[50px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_5px_18px_rgba(14,165,233,0.40)] transition-all duration-200 group-hover:scale-105 group-active:scale-95"
-                    >
-                      <item.icon
-                        className="size-6"
-                        strokeWidth={2.5}
-                      />
-                    </span>
-
-                    <span className="mt-1 text-[10px] font-bold leading-none text-primary">
-                      {item.label}
-                    </span>
-                  </>
-                ) : (
-
-                  /* =========================
-                     BOTÃO NORMAL — SIMPLES
-                     ========================= */
-                  <>
-                    <span className="flex size-[50px] items-center justify-center rounded-full text-muted-foreground transition-all duration-200 group-hover:bg-secondary group-hover:text-foreground group-active:scale-95">
-                      <item.icon
-                        className="size-5"
-                        strokeWidth={2}
-                      />
-                    </span>
-
-                    <span className="mt-1 w-full truncate px-0.5 text-[10px] font-semibold leading-none text-muted-foreground">
-                      {item.label}
-                    </span>
-                  </>
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 text-center transition-colors",
+                  active ? "text-primary" : "text-muted-foreground",
                 )}
-
+              >
+                <span
+                  className={cn(
+                    "flex size-11 items-center justify-center rounded-2xl transition-all",
+                    active && "bg-primary/12 shadow-[0_0_22px_rgba(34,197,94,0.18)]",
+                  )}
+                >
+                  <item.icon className={cn("size-6", active && "fill-current")} strokeWidth={active ? 2.6 : 2} />
+                </span>
+                <span className="text-[11px] font-extrabold tracking-wide">{item.label}</span>
               </Link>
             );
           })}
-
         </div>
       </nav>
     </div>
