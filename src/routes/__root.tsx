@@ -80,8 +80,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#0ea5e9" },
-      { title: "RENT INVESTIMENT — rentinvestimentmzregistragion.lovable.app" },
-      { name: "description", content: "Plataforma RENT INVESTIMENT — planos, tarefas e gestão de saldo." },
+      { title: "BLUE ORIGIN — Plataforma oficial" },
+      { name: "description", content: "Plataforma BLUE ORIGIN — VIPs, tarefas e gestão de saldo em MZN." },
       { property: "og:type", content: "website" },
       {
         name: "content-security-policy",
@@ -114,7 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt">
+    <html lang="pt-MZ">
       <head>
         <HeadContent />
       </head>
