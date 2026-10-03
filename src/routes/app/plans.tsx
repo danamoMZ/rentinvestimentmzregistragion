@@ -65,6 +65,20 @@ function Plans() {
 });
 
 const balance = Number(profile?.balance ?? 0);
+  const { data: balances } = useQuery({
+    queryKey: ["my-profile-balances", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("balance, promotional_balance")
+        .eq("id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { balance: number; promotional_balance: number } | null;
+    },
+  });
+  const promotionalBalance = Number(balances?.promotional_balance ?? 0);
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ["plans"],
@@ -187,15 +201,16 @@ const balance = Number(profile?.balance ?? 0);
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
   <div>
-    <h1 className="text-2xl font-bold tracking-tight">Planos RENT</h1>
+    <h1 className="text-2xl font-bold tracking-tight">Planos VIP</h1>
     <p className="text-sm text-muted-foreground">
-      Escolha um plano e compre com o seu saldo ou faça um depósito.
+      Escolha um VIP e utilize primeiro o crédito promocional de 200 MZN.
     </p>
   </div>
 
   <div className="rounded-xl border border-border bg-secondary px-4 py-3">
-    <p className="text-xs text-muted-foreground">Saldo disponível</p>
+    <p className="text-xs text-muted-foreground">Saldo para levantamento</p>
     <p className="text-lg font-bold">{MZN(balance)}</p>
+    <p className="mt-1 text-xs text-muted-foreground">Crédito para VIPs: <span className="font-semibold text-primary">{MZN(promotionalBalance)}</span></p>
   </div>
 </div>
 
@@ -220,11 +235,11 @@ const balance = Number(profile?.balance ?? 0);
             <div className="flex items-center gap-3 border-b border-border bg-[image:var(--gradient-soft)] p-4">
               <img
                 src={settings?.[`plan_${plan.id}_image_url`] || getPlanImage(plan.id)}
-                alt={`Imagem do ${plan.name}`}
+                alt={`Imagem do VIP ${plan.id}`}
                 className="size-16 rounded-xl object-cover ring-1 ring-border"
               />
               <div>
-                <h2 className="font-bold">{plan.name}</h2>
+                <h2 className="font-bold">VIP {plan.id}</h2>
                 <p className="text-xs text-muted-foreground">{plan.duration_days} dias</p>
               </div>
             </div>
