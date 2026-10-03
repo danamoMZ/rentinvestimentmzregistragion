@@ -102,7 +102,7 @@ function AuthPage() {
   };
 
   const phoneEmail = (v: string) =>
-    `258${normalizePhone(v)}@rentinvestiment.mz`;
+    `258${normalizePhone(v)}@blueorigin.mz`;
 
   useEffect(() => {
     if (
