@@ -6,22 +6,22 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "RENT INVESTIMENT — Planos de rendimento diário" },
+      { title: "BLUE ORIGIN — Planos de rendimento diário" },
       {
         name: "description",
         content:
-          "Ative um plano RENT, complete tarefas diárias e acompanhe o seu saldo em MZN. Registo com bónus de boas-vindas.",
+          "Ative um plano VIP, complete tarefas diárias e acompanhe o seu saldo em MZN. Registo com bónus de boas-vindas.",
       },
-      { property: "og:title", content: "RENT INVESTIMENT — Planos de rendimento diário" },
+      { property: "og:title", content: "BLUE ORIGIN — Planos de rendimento diário" },
       {
         property: "og:description",
-        content: "Ative um plano RENT, complete tarefas diárias e acompanhe o seu saldo em MZN.",
+        content: "Ative um plano VIP, complete tarefas diárias e acompanhe o seu saldo em MZN.",
       },
       { property: "og:url", content: "https://rentinvestimentmzregistragion.lovable.app" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "RENT INVESTIMENT — Planos de rendimento diário" },
-      { name: "twitter:description", content: "Ative um plano RENT, complete tarefas diárias e acompanhe o seu saldo em MZN." },
+      { name: "twitter:title", content: "BLUE ORIGIN — Planos de rendimento diário" },
+      { name: "twitter:description", content: "Ative um plano VIP, complete tarefas diárias e acompanhe o seu saldo em MZN." },
     ],
     links: [
       { rel: "canonical", href: "https://rentinvestimentmzregistragion.lovable.app" },
@@ -57,11 +57,11 @@ function Landing() {
             </span>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
               Rendimento diário com os planos{" "}
-              <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">RENT 1 a RENT 11</span>
+              <span className="bg-[image:var(--gradient-brand)] bg-clip-text text-transparent">VIP 1 a VIP 11</span>
             </h1>
             <p className="mt-4 max-w-lg text-muted-foreground">
               Ative o seu plano, complete as tarefas diárias e acompanhe cada movimento do seu saldo em meticais.
-              Registo gratuito com bónus de boas-vindas de 50 MZN.
+              Registo gratuito com crédito de 200 MZN exclusivo para ativar um VIP.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to="/auth" search={{ mode: "register" }}>
@@ -79,7 +79,7 @@ function Landing() {
               {[
                 { icon: TrendingUp, label: "Tarefas diárias" },
                 { icon: Users, label: "5 níveis de equipa" },
-                { icon: Wallet, label: "Saques rápidos" },
+                { icon: Wallet, label: "Carteira" },
               ].map((item) => (
                 <div key={item.label} className="surface-card p-3">
                   <item.icon className="mx-auto size-5 text-primary" />
@@ -92,8 +92,8 @@ function Landing() {
             <div className="surface-card space-y-4 p-6">
               <h2 className="text-lg font-bold">Como funciona</h2>
               {[
-                { step: "1", title: "Crie a sua conta", text: "Registo gratuito com bónus de boas-vindas de 50 MZN." },
-                { step: "2", title: "Ative um plano", text: "Escolha um plano RENT e receba 100 MZN de bónus no primeiro plano." },
+                { step: "1", title: "Crie a sua conta", text: "Registo gratuito com crédito de 200 MZN exclusivo para ativar um VIP." },
+                { step: "2", title: "Ative um plano", text: "Escolha um plano VIP e receba 100 MZN de bónus no primeiro plano." },
                 { step: "3", title: "Complete tarefas", text: "Realize as tarefas diárias e veja o saldo crescer todos os dias." },
                 { step: "4", title: "Levante os ganhos", text: "Saques a partir de 125 MZN diretamente para a sua carteira." },
               ].map((s) => (
