@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ExternalLink, Loader2, Lock, PlayCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, Image as ImageIcon, Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/use-session";
+import { useProfile, useSession } from "@/hooks/use-session";
 import { MZN, formatDate, todayMaputo } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/app/tasks")({
 
 function Tasks() {
   const { userId } = useSession();
+  const { data: profile } = useProfile();
   const queryClient = useQueryClient();
   const [busyIndex, setBusyIndex] = useState<number | null>(null);
   const [watchingIndex, setWatchingIndex] = useState<number | null>(null);
@@ -22,7 +23,7 @@ function Tasks() {
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ["active-plan", userId],
-    enabled: !!userId,
+    enabled: !!userId && !!profile,
     queryFn: async () => {
       const today = todayMaputo();
       const { data } = await supabase
@@ -52,7 +53,7 @@ function Tasks() {
     enabled: !!userId,
     queryFn: async () => {
       const { data } = await supabase
-        .from("task_claims")
+        .from(profile?.account_tier === "RECRUTA" ? "recruit_task_claims" : "task_claims")
         .select("task_index, amount")
         .eq("user_id", userId!)
         .eq("task_date", todayMaputo());
