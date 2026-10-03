@@ -1,79 +1,78 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowDownLeft,
+  ArrowRight,
   ArrowUpRight,
-  ArrowLeftRight,
   BarChart3,
   CheckSquare,
+  Coins,
   Layers,
-  Users,
+  MessageCircle,
+  Package,
+  Settings,
+  ShieldCheck,
+  UserRoundCog,
   Wallet,
-  HeartHandshake,
-  Megaphone,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/use-session";
 import {
-  syncFn,
-  transferFundsFn,
   financialStatsFn,
+  syncFn,
 } from "@/lib/app.functions";
-import { MZN, formatDate, formatDateTime, todayMaputo } from "@/lib/format";
+import { MZN, formatDate, todayMaputo } from "@/lib/format";
+import { getPlanImage } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
-import { ShareRewardCard } from "@/components/layout/ShareRewardCard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: Dashboard,
 });
 
+const SERVICES = [
+  { label: "Recarregar", icon: Wallet, to: "/app/plans" },
+  { label: "Retirar", icon: Coins, to: "/app/wallet" },
+  { label: "Configurações", icon: Settings, to: "/app/profile" },
+  { label: "Mensagens", icon: MessageCircle, to: "/app/notifications" },
+  { label: "Perfil", icon: UserRoundCog, to: "/app/profile" },
+] as const;
+
 function Dashboard() {
   const { userId } = useSession();
   const { data: profile } = useProfile();
   const queryClient = useQueryClient();
   const sync = useServerFn(syncFn);
-
-  const transferFunds = useServerFn(transferFundsFn);
-const financialStats = useServerFn(financialStatsFn);
-
-const [transferOpen, setTransferOpen] = useState(false);
-const [statsOpen, setStatsOpen] = useState(false);
-const [recipientId, setRecipientId] = useState("");
-const [transferAmount, setTransferAmount] = useState("");
-const [transferPurpose, setTransferPurpose] = useState<
-  "DEPOSIT" | "WITHDRAWAL"
->("DEPOSIT");
-const [transferLoading, setTransferLoading] = useState(false);
-const [statsLoading, setStatsLoading] = useState(false);
-const [stats, setStats] = useState<Awaited<
-  ReturnType<typeof financialStats>
-> | null>(null);
+  const financialStats = useServerFn(financialStatsFn);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [stats, setStats] = useState<Awaited<ReturnType<typeof financialStats>> | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     sync({ data: undefined })
       .then(() => queryClient.invalidateQueries())
       .catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [queryClient, sync]);
 
   const { data: plan } = useQuery({
     queryKey: ["active-plan", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const today = todayMaputo();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_plans")
         .select("*, plans(*)")
         .eq("user_id", userId!)
         .eq("status", "ACTIVE")
-        .lte("start_date", today)
-        .gte("end_date", today)
+        .lte("start_date", todayMaputo())
+        .gte("end_date", todayMaputo())
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (error) throw error;
       return data;
     },
   });
@@ -82,26 +81,18 @@ const [stats, setStats] = useState<Awaited<
     queryKey: ["today-claims", userId],
     enabled: !!userId,
     queryFn: async () => {
+      const table =
+        profile?.account_tier === "RECRUTA"
+          ? "recruit_task_claims"
+          : "task_claims";
+
       const { count } = await supabase
-        .from(profile?.account_tier === "RECRUTA" ? "recruit_task_claims" : "task_claims")
+        .from(table)
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId!)
         .eq("task_date", todayMaputo());
-      return count ?? 0;
-    },
-  });
 
-  const { data: ledger } = useQuery({
-    queryKey: ["recent-ledger", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("ledger_transactions")
-        .select("*")
-        .eq("user_id", userId!)
-        .order("created_at", { ascending: false })
-        .limit(6);
-      return data ?? [];
+      return count ?? 0;
     },
   });
 
@@ -113,458 +104,298 @@ const [stats, setStats] = useState<Awaited<
         .from("referrals")
         .select("id", { count: "exact", head: true })
         .eq("referrer_id", userId!);
+
       return count ?? 0;
     },
   });
 
-  const planRow = plan?.plans as { name: string; daily_task_count: number; daily_income: number } | undefined;
+  const planRow = plan?.plans as
+    | {
+        name: string;
+        daily_task_count: number;
+        daily_income: number;
+        duration_days: number;
+      }
+    | undefined;
+
+  const activeNode = planRow?.name ?? "Estagiário";
+
+  const nodes = useMemo(
+    () => ["Estagiário", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5", "VIP6", "VIP7", "VIP8"],
+    [],
+  );
 
   const openStatistics = async () => {
-  setStatsOpen(true);
+    setStatsOpen(true);
+    if (stats) return;
 
-  if (stats) return;
-
-  setStatsLoading(true);
-
-  try {
-    const result = await financialStats({
-      data: undefined,
-    });
-
-    setStats(result);
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : "Não foi possível carregar as estatísticas.",
-    );
-    setStatsOpen(false);
-  } finally {
-    setStatsLoading(false);
-  }
-};
-
-  const submitTransfer = async () => {
-  const amount = Number(transferAmount.replace(",", "."));
-
-  if (!recipientId.trim()) {
-    toast.error("Digite o ID do destinatário.");
-    return;
-  }
-
-  if (!Number.isFinite(amount) || amount <= 0) {
-    toast.error("Digite um valor válido.");
-    return;
-  }
-
-  setTransferLoading(true);
-
-  try {
-    const result = await transferFunds({
-      data: {
-        recipientPublicId: recipientId.trim().toUpperCase(),
-        amount,
-        purpose: transferPurpose,
-        clientReference: crypto.randomUUID(),
-      },
-    });
-
-    toast.success(result.message);
-
-    setRecipientId("");
-    setTransferAmount("");
-    setTransferPurpose("DEPOSIT");
-    setTransferOpen(false);
-
-    await queryClient.invalidateQueries();
-  } catch (error) {
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : "Não foi possível realizar a transferência.",
-    );
-  } finally {
-    setTransferLoading(false);
-  }
-};
+    setStatsLoading(true);
+    try {
+      setStats(await financialStats({ data: undefined }));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar as estatísticas.",
+      );
+      setStatsOpen(false);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <ShareRewardCard />
-      <section className="overflow-hidden rounded-2xl bg-[image:var(--gradient-brand)] p-5 text-primary-foreground shadow-[var(--shadow-float)]">
-  <p className="text-sm/none opacity-90">
-    Olá, {profile?.full_name || "RECRUTA"} 👋
-  </p>
-
-  <div className="mt-3 flex items-end justify-between gap-2">
-    <div className="min-w-0">
-      <p className="text-[11px] uppercase tracking-widest opacity-80">
-        Saldo levantável
-      </p>
-
-      <p className="mt-0.5 text-3xl font-extrabold tracking-tight">
-        {MZN(profile?.balance)}
-      </p>
-    </div>
-
-    <Button
-      type="button"
-      variant="secondary"
-      size="sm"
-      onClick={openStatistics}
-      className="shrink-0 gap-1 px-2.5 text-xs font-semibold"
-    >
-      <BarChart3 className="size-3.5" />
-      Ver estatísticas
-    </Button>
-  </div>
-
-  <p className="mt-2 text-xs opacity-80">
-    ID: {profile?.public_id ?? "—"}
-  </p>
-
-  <div className="mt-4 grid grid-cols-3 gap-2">
-    <Link to="/app/plans" className="min-w-0">
-      <Button
-        variant="secondary"
-        size="sm"
-        className="w-full gap-1 px-1.5 text-xs"
-      >
-        <ArrowDownLeft className="size-3.5 shrink-0" />
-        <span className="truncate">Depositar</span>
-      </Button>
-    </Link>
-
-    <Link to="/app/wallet" className="min-w-0">
-      <Button
-        variant="secondary"
-        size="sm"
-        className="w-full gap-1 px-1.5 text-xs"
-      >
-        <ArrowUpRight className="size-3.5 shrink-0" />
-        <span className="truncate">Sacar</span>
-      </Button>
-    </Link>
-
-    <Button
-      type="button"
-      variant="secondary"
-      size="sm"
-      onClick={() => setTransferOpen(true)}
-      className="w-full min-w-0 gap-1 px-1.5 text-xs"
-    >
-      <ArrowLeftRight className="size-3.5 shrink-0" />
-      <span className="truncate">Transferir</span>
-    </Button>
-  </div>
-</section>
-
-      {transferOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="w-full max-w-md rounded-2xl bg-background p-5 shadow-xl">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold">Transferir fundos</h2>
-          <p className="text-sm text-muted-foreground">
-            Envie fundos para outro utilizador.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setTransferOpen(false)}
-          className="rounded-full px-3 py-1 text-lg text-muted-foreground hover:bg-muted"
-        >
-          ×
-        </button>
-      </div>
-
-      <div className="mt-5 space-y-4">
-        <div>
-          <label className="text-sm font-medium">
-            ID do destinatário
-          </label>
-
-          <input
-            value={recipientId}
-            onChange={(e) => setRecipientId(e.target.value)}
-            placeholder="RI-XXXXXXXX"
-            className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">
-            Valor
-          </label>
-
-          <input
-            value={transferAmount}
-            onChange={(e) => setTransferAmount(e.target.value)}
-            inputMode="decimal"
-            placeholder="Ex.: 500"
-            className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium">
-            Finalidade dos fundos
-          </p>
-
-          <div className="mt-2 grid gap-2">
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3">
-              <input
-                type="radio"
-                name="transfer-purpose"
-                checked={transferPurpose === "DEPOSIT"}
-                onChange={() => setTransferPurpose("DEPOSIT")}
-                className="mt-1"
-              />
-
-              <span>
-                <span className="block text-sm font-semibold">
-                  Para depósito
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  O destinatário não poderá levantar este valor.
-                </span>
-              </span>
-            </label>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border p-3">
-              <input
-                type="radio"
-                name="transfer-purpose"
-                checked={transferPurpose === "WITHDRAWAL"}
-                onChange={() => setTransferPurpose("WITHDRAWAL")}
-                className="mt-1"
-              />
-
-              <span>
-                <span className="block text-sm font-semibold">
-                  Para levantamento
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  O destinatário poderá utilizar este valor para saque.
-                </span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          onClick={submitTransfer}
-          disabled={transferLoading}
-          className="w-full"
-        >
-          {transferLoading
-            ? "A transferir..."
-            : "Transferir fundos"}
-        </Button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {statsOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="w-full max-w-md rounded-2xl bg-background p-5 shadow-xl">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold">Estatísticas</h2>
-          <p className="text-sm text-muted-foreground">
-            Resumo financeiro da sua conta.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setStatsOpen(false)}
-          className="rounded-full px-3 py-1 text-lg text-muted-foreground hover:bg-muted"
-        >
-          ×
-        </button>
-      </div>
-
-      {statsLoading ? (
-        <div className="py-10 text-center text-sm text-muted-foreground">
-          A carregar estatísticas...
-        </div>
-      ) : stats ? (
-        <div className="mt-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard
-              label="Saldo disponível"
-              value={MZN(stats.balance)}
-            />
-
-            <StatCard
-              label="Total investido"
-              value={MZN(stats.totalInvested)}
-            />
-
-            <StatCard
-              label="Total levantado"
-              value={MZN(stats.totalWithdrawn)}
-            />
-
-            <StatCard
-              label="Total transferido"
-              value={MZN(stats.totalTransferred)}
-            />
+    <div className="blue-home space-y-5">
+      <section className="blue-hero relative overflow-hidden">
+        <img
+          src={getPlanImage(1)}
+          alt="Máquina e tecnologia BLUE ORIGIN"
+          className="absolute inset-0 size-full object-cover"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,10,7,0.08),rgba(2,10,7,0.9))]" />
+        <div className="relative flex min-h-[205px] flex-col justify-between p-5">
+          <div className="flex items-center justify-between">
+            <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 backdrop-blur">
+              BLUE ORIGIN
+            </span>
+            <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-extrabold text-primary-foreground">
+              OFICIAL
+            </span>
           </div>
 
-          <div className="rounded-xl border p-4">
-            <p className="text-sm font-semibold">
-              Ganhos
+          <div>
+            <p className="text-xs font-semibold text-primary">ECOSSISTEMA BLUE ORIGIN</p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+              Bem-vindo, {profile?.full_name || "RECRUTA"}
+            </h1>
+            <p className="mt-1 max-w-xl text-xs leading-5 text-white/70">
+              Acompanhe tarefas, VIPs, carteira e movimentos da sua conta num único lugar.
             </p>
-
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  Hoje
-                </p>
-                <p className="mt-1 text-sm font-bold">
-                  {MZN(stats.gainsToday)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  Semana
-                </p>
-                <p className="mt-1 text-sm font-bold">
-                  {MZN(stats.gainsWeek)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  Mês
-                </p>
-                <p className="mt-1 text-sm font-bold">
-                  {MZN(stats.gainsMonth)}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
-      ) : null}
-    </div>
-  </div>
-)}
+      </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="surface-card p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Layers className="size-4 text-primary" /> Plano ativo
-          </div>
-          {planRow ? (
-            <>
-              <p className="mt-2 text-2xl font-bold">{planRow.name}</p>
-              <p className="text-sm text-muted-foreground">
-                Válido até {formatDate(plan?.end_date)} · {MZN(planRow.daily_income)}/dia
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="mt-2 text-sm text-muted-foreground">Ainda não tem um plano ativo.</p>
-              <Link to="/app/plans">
-                <Button size="sm" className="mt-3">
-                  Ver planos
-                </Button>
-              </Link>
-            </>
-          )}
+      <section className="blue-welcome flex items-center gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+          <Zap className="size-5 fill-current" />
         </div>
-
-        <div className="surface-card p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <CheckSquare className="size-4 text-primary" /> Tarefas de hoje
-          </div>
-          <p className="mt-2 text-2xl font-bold">
-            {todayClaims ?? 0}
-            <span className="text-base font-medium text-muted-foreground">/{planRow?.daily_task_count ?? 0}</span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-foreground">
+            Bem-vindo ao Ecossistema BLUE ORIGIN
           </p>
-          <Link to="/app/tasks">
-            <Button size="sm" variant="outline" className="mt-3">
-              Ir para tarefas
+          <p className="truncate text-xs text-muted-foreground">
+            Conta {profile?.account_tier || "RECRUTA"} · ID {profile?.public_id || "—"}
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="text-xl font-extrabold tracking-tight">Serviços pessoais</h2>
+          <button
+            type="button"
+            onClick={openStatistics}
+            className="text-xs font-bold text-primary"
+          >
+            ESTATÍSTICAS
+          </button>
+        </div>
+
+        <div className="grid grid-cols-5 gap-2">
+          {SERVICES.map((service) => {
+            const Icon = service.icon;
+            return (
+              <Link
+                key={service.label}
+                to={service.to}
+                className="blue-service group flex min-w-0 flex-col items-center gap-2 rounded-2xl p-2 text-center"
+              >
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary text-primary transition-transform group-active:scale-95">
+                  <Icon className="size-5" strokeWidth={2.5} />
+                </span>
+                <span className="w-full truncate text-[10px] font-bold text-muted-foreground">
+                  {service.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Layers className="size-5 text-primary" />
+            <h2 className="text-xl font-extrabold tracking-tight">Nós ativos</h2>
+          </div>
+          <span className="text-xs font-bold text-primary">STATUS</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {nodes.map((node) => {
+            const active = node === activeNode;
+            return (
+              <Link
+                key={node}
+                to={node === "Estagiário" ? "/app/tasks" : "/app/plans"}
+                className={`blue-node relative min-h-[112px] rounded-3xl p-4 transition-transform active:scale-[0.98] ${active ? "blue-node-active" : ""}`}
+              >
+                {active && (
+                  <span className="absolute -right-1 -top-1 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
+                    <ShieldCheck className="size-4" />
+                  </span>
+                )}
+                <p className="text-center text-lg font-extrabold">{node}</p>
+                <p className="mt-3 text-center text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                  {active ? "CONECTADO" : "SINCRONIZAÇÃO"}
+                </p>
+                {!active && (
+                  <p className="mt-2 text-center text-[9px] font-bold uppercase tracking-wider text-primary/80">
+                    NECESSÁRIA
+                  </p>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="blue-balance rounded-3xl p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+              Saldo levantável
+            </p>
+            <p className="mt-1 text-3xl font-extrabold tracking-tight">{MZN(profile?.balance)}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-2xl"
+            onClick={openStatistics}
+            aria-label="Ver estatísticas"
+          >
+            <BarChart3 className="size-5" />
+          </Button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link to="/app/plans">
+            <Button className="w-full gap-2 rounded-2xl">
+              <ArrowDownLeft className="size-4" />
+              Recarregar
+            </Button>
+          </Link>
+          <Link to="/app/wallet">
+            <Button variant="secondary" className="w-full gap-2 rounded-2xl">
+              <ArrowUpRight className="size-4" />
+              Retirar
             </Button>
           </Link>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <QuickLink to="/app/team" icon={Users} label="Equipa" sub={`${teamCount ?? 0} convidados`} />
-        <QuickLink to="/app/affiliate" icon={Megaphone} label="Afiliados" sub="Ganhe extra" />
-        <QuickLink to="/app/donations" icon={HeartHandshake} label="Doações" sub="+15% em 30 dias" />
-        <QuickLink to="/app/wallet" icon={Wallet} label="Carteira" sub="Histórico" />
+      <section className="grid grid-cols-2 gap-3">
+        <Metric label="Tarefas concluídas" value={String(todayClaims ?? 0)} icon={CheckSquare} />
+        <Metric label="Equipa" value={String(teamCount ?? 0)} icon={UserRoundCog} />
+        <Metric label="Plano atual" value={planRow?.name ?? "Nenhum"} icon={Package} />
+        <Metric
+          label="Renda diária"
+          value={planRow ? MZN(planRow.daily_income) : "0,00 MZN"}
+          icon={Coins}
+        />
       </section>
 
-      <section className="surface-card p-4">
-        <h2 className="text-sm font-semibold">Movimentos recentes</h2>
-        <div className="mt-3 divide-y divide-border">
-          {(ledger ?? []).length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">Ainda não há movimentos.</p>
-          )}
-          {(ledger ?? []).map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{tx.description}</p>
-                <p className="text-xs text-muted-foreground">{formatDateTime(tx.created_at)}</p>
-              </div>
-              <span
-                className={`shrink-0 text-sm font-bold ${Number(tx.amount) >= 0 ? "text-success" : "text-destructive"}`}
-              >
-                {Number(tx.amount) >= 0 ? "+" : ""}
-                {MZN(tx.amount)}
-              </span>
-            </div>
-          ))}
-        </div>
+      <section className="blue-shortcuts">
+        <Shortcut icon={CheckSquare} title="Tarefas diárias" description="Assista aos vídeos e acompanhe o progresso." to="/app/tasks" />
+        <Shortcut icon={Package} title="Pacotes VIP" description="Veja os VIPs disponíveis e os seus detalhes." to="/app/plans" />
+        <Shortcut icon={Wallet} title="Carteira" description="Consulte saldo, depósitos e levantamentos." to="/app/wallet" />
+        <Shortcut icon={MessageCircle} title="Central de suporte" description="Entre em contacto com a equipa." to="/app/support" />
       </section>
+
+      {statsOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold">Estatísticas</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Resumo da sua conta.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatsOpen(false)}
+                className="rounded-full px-3 py-1 text-lg text-muted-foreground hover:bg-secondary"
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+
+            {statsLoading ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">A carregar...</div>
+            ) : stats ? (
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Metric label="Saldo" value={MZN(stats.balance)} />
+                <Metric label="Investido" value={MZN(stats.totalInvested)} />
+                <Metric label="Levantado" value={MZN(stats.totalWithdrawn)} />
+                <Metric label="Transferido" value={MZN(stats.totalTransferred)} />
+              </div>
+            ) : null}
+
+            <Button className="mt-5 w-full rounded-2xl" onClick={() => setStatsOpen(false)}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function StatCard({
+function Metric({
   label,
   value,
+  icon: Icon,
 }: {
   label: string;
   value: string;
+  icon?: typeof Coins;
 }) {
   return (
-    <div className="rounded-xl border p-3">
-      <p className="text-xs text-muted-foreground">
-        {label}
-      </p>
-
-      <p className="mt-1 text-base font-bold">
-        {value}
-      </p>
+    <div className="blue-metric rounded-2xl p-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        {Icon ? <Icon className="size-4 text-primary" /> : null}
+      </div>
+      <p className="mt-2 text-lg font-extrabold">{value}</p>
     </div>
   );
 }
 
-function QuickLink({
-  to,
+function Shortcut({
   icon: Icon,
-  label,
-  sub,
+  title,
+  description,
+  to,
 }: {
+  icon: typeof Coins;
+  title: string;
+  description: string;
   to: string;
-  icon: typeof Users;
-  label: string;
-  sub: string;
 }) {
   return (
-    <Link to={to} className="surface-card flex flex-col gap-1 p-3 transition-shadow hover:shadow-[var(--shadow-float)]">
-      <Icon className="size-5 text-primary" />
-      <span className="text-sm font-semibold">{label}</span>
-      <span className="text-xs text-muted-foreground">{sub}</span>
+    <Link
+      to={to}
+      className="flex items-center gap-3 border-b border-border/70 py-4 last:border-0"
+    >
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold">{title}</span>
+        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{description}</span>
+      </span>
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
     </Link>
   );
 }
