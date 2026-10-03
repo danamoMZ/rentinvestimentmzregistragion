@@ -193,13 +193,13 @@ const [stats, setStats] = useState<Awaited<
       <ShareRewardCard />
       <section className="overflow-hidden rounded-2xl bg-[image:var(--gradient-brand)] p-5 text-primary-foreground shadow-[var(--shadow-float)]">
   <p className="text-sm/none opacity-90">
-    Olá, {profile?.full_name || "investidor"} 👋
+    Olá, {profile?.full_name || "RECRUTA"} 👋
   </p>
 
   <div className="mt-3 flex items-end justify-between gap-2">
     <div className="min-w-0">
       <p className="text-[11px] uppercase tracking-widest opacity-80">
-        Saldo disponível
+        Saldo levantável
       </p>
 
       <p className="mt-0.5 text-3xl font-extrabold tracking-tight">
