@@ -94,6 +94,9 @@ export type Profile = {
   referral_code: string;
   referred_by: string | null;
   created_at: string;
+  account_tier?: "RECRUTA" | "USER";
+  promotional_balance?: number;
+  platform_version?: number;
 };
 
 export function useProfile() {
