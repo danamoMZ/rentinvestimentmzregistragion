@@ -62,6 +62,20 @@ export const PAYMENT_FIELDS = [
   { key: "payment_holder", label: "Nome do titular", placeholder: "CARLITOS OSSUFO" },
 ] as const;
 
+export const PLAN_IMAGE_FIELDS = Array.from({ length: 11 }, (_, index) => ({
+  key: `plan_${index + 1}_image_url`,
+  label: `Imagem do VIP ${index + 1}`,
+  placeholder: "https://.../imagem.jpg ou /caminho/da/imagem",
+}));
+
+export const TASK_MEDIA_FIELDS = Array.from({ length: 5 }, (_, index) => ({
+  index: index + 1,
+  imageKey: `task_${index + 1}_image_url`,
+  videoKey: `task_${index + 1}_video_url`,
+  imageLabel: `Imagem da tarefa ${index + 1}`,
+  videoLabel: `Vídeo da tarefa ${index + 1}`,
+}));
+
 export const toHref = (value: string) => {
   const v = value.trim();
   if (!v) return "";
