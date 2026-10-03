@@ -53,7 +53,7 @@ function Landing() {
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 md:grid-cols-2 md:py-20">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <ShieldCheck className="size-3.5" /> Plataforma oficial RENT
+              <ShieldCheck className="size-3.5" /> Plataforma oficial BLUE ORIGIN
             </span>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
               Rendimento diário com os planos{" "}
