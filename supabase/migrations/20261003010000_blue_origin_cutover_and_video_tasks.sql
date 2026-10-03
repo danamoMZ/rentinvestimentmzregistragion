@@ -88,6 +88,7 @@ DECLARE
   v_today date := (now() AT TIME ZONE 'Africa/Maputo')::date;
   v_watch public.task_watch_sessions;
   v_plan record;
+  v_video text;
   v_profile record;
   v_balance numeric;
 BEGIN
