@@ -102,11 +102,9 @@ export async function getActivePlan(userId: string) {
   return data;
 }
 export async function purchasePlan(userId: string, planId: number) {
-  const profile = await assertNotBlocked(userId);
+  await assertNotBlocked(userId);
 
-  if (!Number.isInteger(planId) || planId <= 0) {
-    throw new Error("Plano inválido.");
-  }
+  if (!Number.isInteger(planId) || planId <= 0) throw new Error("Plano inválido.");
 
   const { data: plan, error: planError } = await supabaseAdmin
     .from("plans")
@@ -114,223 +112,45 @@ export async function purchasePlan(userId: string, planId: number) {
     .eq("id", planId)
     .eq("active", true)
     .maybeSingle();
-
-  if (planError) {
-    throw new Error(planError.message);
-  }
-
-  if (!plan) {
-    throw new Error("Este plano não está disponível.");
-  }
+  if (planError) throw new Error(planError.message);
+  if (!plan) throw new Error("Este plano não está disponível.");
 
   const price = Number(plan.price);
+  if (!Number.isFinite(price) || price <= 0) throw new Error("O preço deste plano é inválido.");
 
-  if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("O preço deste plano é inválido.");
-  }
+  const { data, error } = await (supabaseAdmin as any).rpc("purchase_vip_with_credits", {
+    _user_id: userId,
+    _plan_id: planId,
+  });
+  if (error) throw new Error(error.message);
 
-  const currentBalance = Number(profile.balance ?? 0);
+  const result = (data ?? {}) as {
+    planId?: number;
+    planName?: string;
+    amount?: number;
+    balance?: number;
+    promotionalBalance?: number;
+    startDate?: string;
+    endDate?: string;
+  };
 
-  if (!Number.isFinite(currentBalance)) {
-    throw new Error("Não foi possível verificar o seu saldo.");
-  }
+  await notify(
+    userId,
+    "🎉 VIP ativado com sucesso!",
+    `${result.planName ?? plan.name} foi ativado até ${result.endDate ?? "—"}. Créditos VIP restantes: ${Number(result.promotionalBalance ?? 0).toFixed(2)} MZN.`,
+  );
 
-  const { data: fullProfile, error: fullProfileError } = await supabaseAdmin
-    .from("profiles")
-    .select("balance, promotional_balance")
-    .eq("id", userId)
-    .single();
-  if (fullProfileError) throw new Error(fullProfileError.message);
-
-  const cashBalance = Number(fullProfile.balance ?? 0);
-  const promotionalBalance = Number(fullProfile.promotional_balance ?? 0);
-  if (cashBalance + promotionalBalance < price) {
-    throw new Error(
-      `Saldo insuficiente. O ${plan.name} custa ${price} MZN. Crédito VIP: ${promotionalBalance.toFixed(2)} MZN; saldo levantável: ${cashBalance.toFixed(2)} MZN.`,
-    );
-  }
-
-  const promoUsed = Math.min(promotionalBalance, price);
-  const cashUsed = price - promoUsed;
-  const purchaseReference = `PLAN-${plan.id}-${userId}-${Date.now()}`;
-
-  if (promoUsed > 0) {
-    const { error: promoError } = await supabaseAdmin
-      .from("profiles")
-      .update({ promotional_balance: promotionalBalance - promoUsed })
-      .eq("id", userId);
-    if (promoError) throw new Error(promoError.message);
-    await supabaseAdmin.from("promotional_ledger_transactions").insert({
-      user_id: userId,
-      type: "PLAN_PURCHASE",
-      amount: -promoUsed,
-      balance_before: promotionalBalance,
-      balance_after: promotionalBalance - promoUsed,
-      reference: `${purchaseReference}-PROMO`,
-      description: `Crédito promocional usado no ${plan.name}`,
-    });
-  }
-
-  if (cashUsed > 0) {
-    await ledger(
-      userId,
-      "PLAN_PURCHASE",
-      -cashUsed,
-      `${purchaseReference}-CASH`,
-      `Compra do plano ${plan.name} — -${cashUsed} MZN`,
-    );
-  }
-
-  try {
-    const start = todayMaputo();
-
-    const durationDays = Number(plan.duration_days);
-
-    if (!Number.isFinite(durationDays) || durationDays <= 0) {
-      throw new Error("A duração deste plano é inválida.");
-    }
-
-    const end = new Date(
-      new Date(`${start}T00:00:00Z`).getTime() +
-        durationDays * 86400000,
-    )
-      .toISOString()
-      .slice(0, 10);
-
-    /*
-     * Activamos primeiro o novo plano.
-     * O plano anterior será marcado como REPLACED depois.
-     */
-    const { data: newPlan, error: insertError } = await supabaseAdmin
-      .from("user_plans")
-      .insert({
-        user_id: userId,
-        plan_id: plan.id,
-        start_date: start,
-        end_date: end,
-        status: "ACTIVE",
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !newPlan) {
-      throw new Error(
-        insertError?.message ?? "Não foi possível activar o plano.",
-      );
-    }
-
-    if ((profile as { account_tier?: string }).account_tier === "RECRUTA") {
-      const { error: tierError } = await supabaseAdmin
-        .from("profiles")
-        .update({ account_tier: "USER" })
-        .eq("id", userId);
-      if (tierError) throw new Error(tierError.message);
-    }
-
-    /*
-     * Se o utilizador já tinha outro plano activo,
-     * ele passa para REPLACED.
-     */
-    const { error: replaceError } = await supabaseAdmin
-      .from("user_plans")
-      .update({ status: "REPLACED" })
-      .eq("user_id", userId)
-      .eq("status", "ACTIVE")
-      .neq("id", newPlan.id);
-
-    if (replaceError) {
-      /*
-       * Se não conseguimos substituir o plano anterior,
-       * removemos o novo plano e fazemos o estorno.
-       */
-      await supabaseAdmin
-        .from("user_plans")
-        .delete()
-        .eq("id", newPlan.id);
-
-      throw new Error(replaceError.message);
-    }
-
-    /*
-     * Lemos novamente o saldo depois da compra.
-     * Assim a resposta enviada à página contém o saldo actual.
-     */
-    const { data: updatedProfile, error: balanceError } = await supabaseAdmin
-      .from("profiles")
-      .select("balance")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (balanceError) {
-      throw new Error(balanceError.message);
-    }
-
-    const newBalance = Number(updatedProfile?.balance ?? 0);
-
-    await notify(
-      userId,
-      "🎉 Plano comprado com sucesso!",
-      `O seu ${plan.name} foi activado até ${end}. Foram descontados ${price} MZN do seu saldo. Saldo actual: ${newBalance} MZN.`,
-    );
-
-    return {
-      ok: true as const,
-      planId: plan.id,
-      planName: plan.name,
-      amount: price,
-      balance: newBalance,
-      startDate: start,
-      endDate: end,
-    };
-  } catch (error) {
-    /*
-     * Se a activação falhar depois do débito,
-     * tentamos devolver o dinheiro através do ledger.
-     */
-    try {
-      if (promoUsed > 0) {
-        const { data: rollbackProfile } = await supabaseAdmin
-          .from("profiles")
-          .select("promotional_balance")
-          .eq("id", userId)
-          .maybeSingle();
-        const currentPromo = Number(rollbackProfile?.promotional_balance ?? 0);
-        await supabaseAdmin
-          .from("profiles")
-          .update({ promotional_balance: currentPromo + promoUsed })
-          .eq("id", userId);
-        await supabaseAdmin.from("promotional_ledger_transactions").insert({
-          user_id: userId,
-          type: "PLAN_PURCHASE_REFUND",
-          amount: promoUsed,
-          balance_before: currentPromo,
-          balance_after: currentPromo + promoUsed,
-          reference: `PLAN-PROMO-REFUND-${plan.id}-${Date.now()}`,
-          description: `Estorno do crédito promocional do ${plan.name}`,
-        });
-      }
-      if (cashUsed > 0) {
-        await ledger(
-          userId,
-          "PLAN_PURCHASE_REFUND",
-          cashUsed,
-          `PLAN-REFUND-${plan.id}-${Date.now()}`,
-          `Estorno da compra do ${plan.name} devido a falha na activação.`,
-        );
-      }
-    } catch (refundError) {
-      console.error(
-        "Falha crítica ao estornar compra do plano:",
-        refundError,
-      );
-    }
-
-    throw error instanceof Error
-      ? error
-      : new Error("Não foi possível concluir a compra do plano.");
-  }
+  return {
+    ok: true as const,
+    planId: result.planId ?? plan.id,
+    planName: result.planName ?? plan.name,
+    amount: Number(result.amount ?? price),
+    balance: Number(result.balance ?? 0),
+    promotionalBalance: Number(result.promotionalBalance ?? 0),
+    startDate: result.startDate ?? todayMaputo(),
+    endDate: result.endDate ?? todayMaputo(),
+  };
 }
-
 export async function removeUserPlan(
   adminId: string,
   userId: string,
@@ -392,28 +212,27 @@ export async function removeUserPlan(
 
 export async function submitDeposit(
   userId: string,
-  input: { planId: number; senderNumber: string; transactionId: string; proofPath: string | null },
+  input: { amount: number; senderNumber: string; transactionId: string; proofPath: string | null },
 ) {
   await assertNotBlocked(userId);
-  const { data: plan, error: planError } = await supabaseAdmin
-    .from("plans")
-    .select("*")
-    .eq("id", input.planId)
-    .maybeSingle();
-  if (planError) throw new Error(planError.message);
-  if (!plan) throw new Error("Plano inválido.");
+
+  const amount = Math.round(Number(input.amount) * 100) / 100;
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Informe um valor de recarga maior que 0 MZN.");
+  if (!input.senderNumber.trim() || !input.transactionId.trim()) {
+    throw new Error("Informe o número usado no pagamento e o ID da transação.");
+  }
 
   const { count } = await supabaseAdmin
     .from("deposit_requests")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("status", "PENDING");
-  if ((count ?? 0) > 0) throw new Error("Já tem um pedido de depósito em análise.");
+  if ((count ?? 0) > 0) throw new Error("Já tem uma recarga em análise.");
 
-  const { error } = await supabaseAdmin.from("deposit_requests").insert({
+  const { error } = await (supabaseAdmin as any).from("deposit_requests").insert({
     user_id: userId,
-    plan_id: plan.id,
-    amount: plan.price,
+    plan_id: null,
+    amount,
     sender_number: input.senderNumber.trim(),
     transaction_id: input.transactionId.trim(),
     proof_path: input.proofPath,
@@ -421,7 +240,6 @@ export async function submitDeposit(
   if (error) throw new Error(error.message);
   return { ok: true as const };
 }
-
 export async function requestWithdrawal(userId: string, amount: number) {
   const profile = await assertNotBlocked(userId);
   if (!Number.isFinite(amount)) throw new Error("Valor inválido.");
@@ -926,89 +744,44 @@ export async function getFinancialStats(userId: string) {
 
 export async function reviewDeposit(adminId: string, depositId: string, approve: boolean) {
   await assertAdmin(adminId);
-  const { data: deposit, error } = await supabaseAdmin
-    .from("deposit_requests")
-    .update({
-      status: approve ? "APPROVED" : "REJECTED",
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: adminId,
-    })
-    .eq("id", depositId)
-    .eq("status", "PENDING")
-    .select("*, plans(*)")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!deposit) throw new Error("Pedido já foi processado.");
 
-  if (!approve) {
-    await notify(deposit.user_id, "❌ Depósito rejeitado", "O seu comprovativo não foi aceite. Contacte o suporte.");
-    await logAdmin(adminId, "REJECT_DEPOSIT", deposit.user_id, Number(deposit.amount), null, "REJECTED");
-    return { ok: true as const };
+  const { data, error } = await (supabaseAdmin as any).rpc("review_recharge_request", {
+    _deposit_id: depositId,
+    _admin_id: adminId,
+    _approve: approve,
+  });
+  if (error) throw new Error(error.message);
+
+  const result = (data ?? {}) as {
+    user_id?: string;
+    amount?: number;
+    vip_credit?: number;
+    status?: string;
+  };
+
+  if (result.user_id) {
+    if (approve) {
+      await notify(
+        result.user_id,
+        "🎟️ Recarga aprovada",
+        `A sua recarga de ${Number(result.amount ?? 0).toFixed(2)} MZN foi aprovada. Foram adicionados ${Number(result.vip_credit ?? 0).toFixed(2)} MZN em créditos VIP.`,
+      );
+      await logAdmin(
+        adminId,
+        "APPROVE_RECHARGE",
+        result.user_id,
+        Number(result.amount ?? 0),
+        `Crédito VIP: ${Number(result.vip_credit ?? 0).toFixed(2)} MZN`,
+        "APPROVED",
+      );
+    } else {
+      await notify(result.user_id, "❌ Recarga rejeitada", "O seu comprovativo não foi aceite. Contacte o suporte.");
+      await logAdmin(adminId, "REJECT_RECHARGE", result.user_id, Number(result.amount ?? 0), null, "REJECTED");
+    }
   }
 
-  const plan = deposit.plans as { id: number; name: string; price: number; duration_days: number };
-  const start = todayMaputo();
-  const end = new Date(new Date(`${start}T00:00:00Z`).getTime() + plan.duration_days * 86400000)
-    .toISOString()
-    .slice(0, 10);
-
-  await supabaseAdmin
-    .from("user_plans")
-    .update({ status: "REPLACED" })
-    .eq("user_id", deposit.user_id)
-    .eq("status", "ACTIVE");
-
-  const { error: planError } = await supabaseAdmin.from("user_plans").insert({
-    user_id: deposit.user_id,
-    plan_id: plan.id,
-    start_date: start,
-    end_date: end,
-    status: "ACTIVE",
-  });
-  if (planError) throw new Error(planError.message);
-
-  await notify(
-    deposit.user_id,
-    "🎉 Plano aprovado!",
-    `O seu plano ${plan.name} está ativo até ${end}. Já pode realizar as tarefas.`,
-  );
-
-  await payReferralReward(deposit.user_id, Number(plan.price));
-  await logAdmin(adminId, "APPROVE_DEPOSIT", deposit.user_id, Number(deposit.amount), null, "APPROVED");
-  return { ok: true as const };
+  return { ok: true as const, status: result.status ?? (approve ? "APPROVED" : "REJECTED") };
 }
-
-async function payReferralReward(userId: string, planPrice: number) {
-  const { data: referral } = await supabaseAdmin
-    .from("referrals")
-    .select("*")
-    .eq("referred_id", userId)
-    .eq("rewarded", false)
-    .maybeSingle();
-  if (!referral) return;
-
-  const { count } = await supabaseAdmin
-    .from("referrals")
-    .select("id", { count: "exact", head: true })
-    .eq("referrer_id", referral.referrer_id)
-    .eq("rewarded", true);
-
-  const level = levelFor(count ?? 0);
-  const reward = Math.round(planPrice * level.pct * 100) / 100;
-
-  const { data: updated } = await supabaseAdmin
-    .from("referrals")
-    .update({ rewarded: true, reward_amount: reward })
-    .eq("id", referral.id)
-    .eq("rewarded", false)
-    .select("id")
-    .maybeSingle();
-  if (!updated) return;
-
-  await ledger(referral.referrer_id, "REFERRAL_REWARD", reward, `REF-${referral.id}`, `Bónus de indicação (Nível ${level.level})`);
-  await notify(referral.referrer_id, "🎁 Bónus de indicação", `Recebeu ${reward} MZN pela sua indicação.`);
-}
-
 export async function reviewWithdrawal(adminId: string, withdrawalId: string, approve: boolean) {
   await assertAdmin(adminId);
   const { data: pending } = await supabaseAdmin

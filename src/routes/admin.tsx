@@ -127,7 +127,7 @@ function AdminPage() {
 
         <Tabs defaultValue="deposits">
           <TabsList className="flex w-full flex-wrap justify-start gap-1">
-            <TabsTrigger value="deposits">Depósitos</TabsTrigger>
+            <TabsTrigger value="deposits">Recargas VIP</TabsTrigger>
             <TabsTrigger value="withdrawals">Saques</TabsTrigger>
             <TabsTrigger value="affiliates">Afiliados</TabsTrigger>
             <TabsTrigger value="users">Utilizadores</TabsTrigger>
@@ -219,7 +219,7 @@ function Deposits({ onDone }: { onDone: () => void }) {
     setBusy(id);
     try {
       await review({ data: { id, approve } });
-      toast.success(approve ? "Depósito aprovado e plano ativado." : "Depósito rejeitado.");
+      toast.success(approve ? "Recarga aprovada e créditos VIP adicionados." : "Recarga rejeitada.");
       onDone();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao processar.");
@@ -247,7 +247,7 @@ function Deposits({ onDone }: { onDone: () => void }) {
             <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold">
-                  {user?.full_name || user?.email} · {(d.plans as { name: string } | null)?.name} · {MZN(d.amount)}
+                  {user?.full_name || user?.email} · Recarga {MZN(d.amount)} · crédito VIP após aprovação {MZN(Number(d.amount) * 3)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Nº {d.sender_number} · ID {d.transaction_id} · {formatDateTime(d.created_at)}
