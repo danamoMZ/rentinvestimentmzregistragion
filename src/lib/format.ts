@@ -59,7 +59,12 @@ export const SUPPORT_FIELDS = [
 
 export const PAYMENT_FIELDS = [
   { key: "payment_emola", label: "Número e-Mola", placeholder: "865982221" },
-  { key: "payment_holder", label: "Nome do titular", placeholder: "CARLITOS OSSUFO" },
+  { key: "payment_holder", label: "Nome do titular", placeholder: "Nome do titular" },
+  { key: "payment_p20", label: "Carteira P20", placeholder: "Número ou endereço P20" },
+  { key: "payment_bnb", label: "Carteira BNB", placeholder: "Endereço BNB" },
+  { key: "payment_usdt_trc20", label: "Endereço USDT TRC20", placeholder: "Endereço TRC20" },
+  { key: "payment_usdt_qr_url", label: "QR Code USDT (URL)", placeholder: "https://.../qr-usdt.png" },
+  { key: "payment_bnb_qr_url", label: "QR Code BNB (URL)", placeholder: "https://.../qr-bnb.png" },
 ] as const;
 
 export const PLAN_IMAGE_FIELDS = Array.from({ length: 11 }, (_, index) => ({
