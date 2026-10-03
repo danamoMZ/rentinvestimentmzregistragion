@@ -36,6 +36,14 @@ function Tasks() {
     },
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["task-media-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("key, value");
+      return Object.fromEntries((data ?? []).map((r) => [r.key, r.value])) as Record<string, string>;
+    },
+  });
+
   const { data: claims } = useQuery({
     queryKey: ["task-claims-today", userId],
     enabled: !!userId,
@@ -124,9 +132,35 @@ function Tasks() {
           .filter((index) => !claimed.has(index))
           .map((index) => (
             <div key={index} className="surface-card flex items-center justify-between gap-3 p-4">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-semibold">Tarefa {index}</p>
-                <p className="text-sm text-muted-foreground">Recompensa {MZN(planRow.task_value)}</p>
+                <p className="text-sm text-muted-foreground">Recompensa: {MZN(planRow.task_value)}</p>
+                {settings?.[`task_${index}_image_url`] && (
+                  <img
+                    src={settings[`task_${index}_image_url`]}
+                    alt={`Imagem da tarefa ${index}`}
+                    className="mt-3 h-36 w-full rounded-lg object-cover ring-1 ring-border"
+                  />
+                )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {settings?.[`task_${index}_video_url`] && (
+                    <a
+                      href={settings[`task_${index}_video_url`]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <ExternalLink className="size-3.5" />
+                      Ver vídeo da tarefa
+                    </a>
+                  )}
+                  {!settings?.[`task_${index}_image_url`] && !settings?.[`task_${index}_video_url`] && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <ImageIcon className="size-3.5" />
+                      Conteúdo da tarefa ainda não configurado
+                    </span>
+                  )}
+                </div>
               </div>
               <Button size="sm" onClick={() => claim(index)} disabled={busyIndex !== null}>
                 {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
