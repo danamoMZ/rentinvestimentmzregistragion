@@ -219,6 +219,14 @@ export async function purchasePlan(userId: string, planId: number) {
       );
     }
 
+    if ((profile as { account_tier?: string }).account_tier === "RECRUTA") {
+      const { error: tierError } = await supabaseAdmin
+        .from("profiles")
+        .update({ account_tier: "USER" })
+        .eq("id", userId);
+      if (tierError) throw new Error(tierError.message);
+    }
+
     /*
      * Se o utilizador já tinha outro plano activo,
      * ele passa para REPLACED.
