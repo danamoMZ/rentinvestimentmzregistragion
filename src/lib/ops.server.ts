@@ -28,7 +28,7 @@ export function todayMaputo(): string {
 export async function assertNotBlocked(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("profiles")
-    .select("id, blocked, wallet_number, phone, balance")
+    .select("id, blocked, wallet_number, phone, balance, account_tier, promotional_balance")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
