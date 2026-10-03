@@ -35,7 +35,16 @@ import {
   grantShareRewardFn,
   removeUserPlanFn,
 } from "@/lib/app.functions";
-import { MZN, PAYMENT_FIELDS, STATUS_CLASS, STATUS_LABEL, SUPPORT_FIELDS, formatDateTime } from "@/lib/format";
+import {
+  MZN,
+  PAYMENT_FIELDS,
+  PLAN_IMAGE_FIELDS,
+  STATUS_CLASS,
+  STATUS_LABEL,
+  SUPPORT_FIELDS,
+  TASK_MEDIA_FIELDS,
+  formatDateTime,
+} from "@/lib/format";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1089,8 +1098,12 @@ function Settings() {
     setBusy(true);
     try {
       const payload: Record<string, string> = {};
-      [...SUPPORT_FIELDS, ...PAYMENT_FIELDS].forEach((f) => {
+      [...SUPPORT_FIELDS, ...PAYMENT_FIELDS, ...PLAN_IMAGE_FIELDS].forEach((f) => {
         payload[f.key] = values[f.key] ?? "";
+      });
+      TASK_MEDIA_FIELDS.forEach((f) => {
+        payload[f.imageKey] = values[f.imageKey] ?? "";
+        payload[f.videoKey] = values[f.videoKey] ?? "";
       });
       await save({ data: { values: payload } });
       toast.success("Definições guardadas. Já estão visíveis para os utilizadores.");
@@ -1133,6 +1146,35 @@ function Settings() {
             {PAYMENT_FIELDS.map((f) => field(f.key, f.label, f.placeholder))}
           </div>
         </div>
+
+        <div>
+          <h2 className="text-sm font-semibold">Imagens dos VIPs</h2>
+          <p className="text-xs text-muted-foreground">
+            Pode trocar a fotografia de cada VIP colando um endereço de imagem. Se deixar vazio, o site usa a imagem padrão da Blue Origin.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {PLAN_IMAGE_FIELDS.map((f) => field(f.key, f.label, f.placeholder))}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-sm font-semibold">Imagens e vídeos das tarefas</h2>
+          <p className="text-xs text-muted-foreground">
+            Defina uma imagem e um link de vídeo para cada tarefa diária. Estes conteúdos aparecem diretamente no painel do utilizador.
+          </p>
+          <div className="mt-3 space-y-4">
+            {TASK_MEDIA_FIELDS.map((f) => (
+              <div key={f.index} className="rounded-lg border border-border p-3">
+                <p className="mb-3 text-xs font-semibold">Tarefa {f.index}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {field(f.imageKey, f.imageLabel, "https://.../imagem.jpg")}
+                  {field(f.videoKey, f.videoLabel, "https://youtube.com/...")}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <Button onClick={submit} disabled={busy}>
           {busy && <Loader2 className="mr-2 size-4 animate-spin" />} Guardar definições
         </Button>
