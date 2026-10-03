@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, Lock } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Lock, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
@@ -16,6 +16,9 @@ function Tasks() {
   const { userId } = useSession();
   const queryClient = useQueryClient();
   const [busyIndex, setBusyIndex] = useState<number | null>(null);
+  const [watchingIndex, setWatchingIndex] = useState<number | null>(null);
+  const [watchedSeconds, setWatchedSeconds] = useState<Record<number, number>>({});
+  const [watchStartedAt, setWatchStartedAt] = useState<Record<number, number>>({});
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ["active-plan", userId],
@@ -61,15 +64,60 @@ function Tasks() {
     | { name: string; daily_task_count: number; task_value: number; daily_income: number }
     | undefined;
   const claimed = new Set((claims ?? []).map((c) => c.task_index));
+  const isRecruit = !planRow;
+  const total = planRow?.daily_task_count ?? 4;
+  const taskValue = planRow?.task_value ?? 5;
+  const taskIndexes = useMemo(() => Array.from({ length: total }, (_, i) => i + 1), [total]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setWatchedSeconds((current) => {
+        const next = { ...current };
+        Object.entries(watchStartedAt).forEach(([key, started]) => {
+          const index = Number(key);
+          next[index] = Math.max(0, Math.floor((Date.now() - started) / 1000));
+        });
+        return next;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [watchStartedAt]);
+
+  const videoUrl = (value: string) => {
+    try {
+      const u = new URL(value);
+      if (u.hostname.includes("youtube.com") && u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        return id ? `https://www.youtube.com/embed/${id}?rel=0&playsinline=1` : value;
+      }
+      if (u.hostname === "youtu.be") {
+        return `https://www.youtube.com/embed/${u.pathname.slice(1)}?rel=0&playsinline=1`;
+      }
+      return value;
+    } catch {
+      return value;
+    }
+  };
+
+  const startWatch = (index: number) => {
+    setWatchingIndex(index);
+    setWatchStartedAt((current) => ({ ...current, [index]: Date.now() }));
+    setWatchedSeconds((current) => ({ ...current, [index]: 0 }));
+  };
 
   const claim = async (index: number) => {
+    if ((watchedSeconds[index] ?? 0) < 15) {
+      toast.error("Assista ao vídeo durante pelo menos 15 segundos.");
+      return;
+    }
     setBusyIndex(index);
     try {
       const { data, error } = await supabase.rpc("claim_task", { _task_index: index });
       if (error) throw new Error(error.message);
       const result = data as { error?: string; amount?: number } | null;
       if (result?.error) throw new Error(result.error);
-      toast.success(`Tarefa coletada com sucesso! +${MZN(result?.amount ?? 0)}`);
+      toast.success(`Tarefa concluída! +${MZN(result?.amount ?? taskValue)}`);
+      setWatchingIndex(null);
       queryClient.invalidateQueries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao concluir a tarefa.");
@@ -87,20 +135,6 @@ function Tasks() {
     );
   }
 
-  if (!planRow) {
-    return (
-      <div className="surface-card p-8 text-center">
-        <Lock className="mx-auto size-8 text-muted-foreground" />
-        <h1 className="mt-3 text-lg font-bold">Sem plano ativo</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Ative um plano para desbloquear as tarefas diárias.</p>
-        <Link to="/app/plans">
-          <Button className="mt-4">Ver planos</Button>
-        </Link>
-      </div>
-    );
-  }
-
-  const total = planRow.daily_task_count;
   const done = claimed.size;
 
   return (
@@ -108,7 +142,7 @@ function Tasks() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Tarefas diárias</h1>
         <p className="text-sm text-muted-foreground">
-          {planRow.name} · válido até {formatDate(plan?.end_date)}
+          {planRow ? `${planRow.name} · válido até ${formatDate(plan?.end_date)}` : "RECRUTA · 4 tarefas diárias de 5 MZN"}
         </p>
       </div>
 
@@ -117,7 +151,7 @@ function Tasks() {
           <span className="font-semibold">
             Progresso de hoje: {done}/{total}
           </span>
-          <span className="text-muted-foreground">Ganho diário {MZN(planRow.daily_income)}</span>
+          <span className="text-muted-foreground">{planRow ? `Ganho diário ${MZN(planRow.daily_income)}` : "Até 20 MZN por dia"}</span>
         </div>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
           <div
@@ -128,46 +162,64 @@ function Tasks() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {Array.from({ length: total }, (_, i) => i + 1)
+        {taskIndexes
           .filter((index) => !claimed.has(index))
-          .map((index) => (
-            <div key={index} className="surface-card flex items-center justify-between gap-3 p-4">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">Tarefa {index}</p>
-                <p className="text-sm text-muted-foreground">Recompensa: {MZN(planRow.task_value)}</p>
+          .map((index) => {
+            const video = settings?.[`task_${index}_video_url`] || "";
+            const seconds = watchedSeconds[index] ?? 0;
+            const ready = seconds >= 15;
+            return (
+              <div key={index} className="surface-card overflow-hidden p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">Tarefa {index}</p>
+                    <p className="text-sm text-muted-foreground">Recompensa: {MZN(taskValue)}</p>
+                  </div>
+                  {isRecruit && <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">RECRUTA</span>}
+                </div>
                 {settings?.[`task_${index}_image_url`] && (
-                  <img
-                    src={settings[`task_${index}_image_url`]}
-                    alt={`Imagem da tarefa ${index}`}
-                    className="mt-3 h-36 w-full rounded-lg object-cover ring-1 ring-border"
-                  />
+                  <img src={settings[`task_${index}_image_url`]} alt={`Imagem da tarefa ${index}`} className="mt-3 h-40 w-full rounded-xl object-cover ring-1 ring-border" />
                 )}
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {settings?.[`task_${index}_video_url`] && (
-                    <a
-                      href={settings[`task_${index}_video_url`]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      Ver vídeo da tarefa
-                    </a>
-                  )}
-                  {!settings?.[`task_${index}_image_url`] && !settings?.[`task_${index}_video_url`] && (
-                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <ImageIcon className="size-3.5" />
-                      Conteúdo da tarefa ainda não configurado
-                    </span>
+                {video ? (
+                  <div className="mt-3 overflow-hidden rounded-xl border border-border bg-black">
+                    {video.includes("youtube.com") || video.includes("youtu.be") ? (
+                      <iframe
+                        src={videoUrl(video)}
+                        title={`Vídeo da tarefa ${index}`}
+                        className="aspect-video w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <a href={video} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 p-5 text-sm font-semibold text-primary-foreground">
+                        <ExternalLink className="size-5" /> Abrir vídeo
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-3 rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                    <PlayCircle className="mx-auto size-6" />
+                    <p className="mt-2">O administrador ainda não configurou o vídeo.</p>
+                  </div>
+                )}
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {video ? `Tempo assistido: ${Math.min(seconds, 15)}s / 15s` : "Vídeo obrigatório"}
+                  </p>
+                  {!watchStartedAt[index] ? (
+                    <Button size="sm" onClick={() => startWatch(index)} disabled={!video}>
+                      <PlayCircle className="mr-2 size-4" /> Assistir agora
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => claim(index)} disabled={!ready || busyIndex !== null}>
+                      {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
+                      {ready ? "Reivindicar agora" : `Aguarde ${15 - seconds}s`}
+                    </Button>
                   )}
                 </div>
               </div>
-              <Button size="sm" onClick={() => claim(index)} disabled={busyIndex !== null}>
-                {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
-                Concluir
-              </Button>
-            </div>
-          ))}
+            );
+          })}
       </div>
 
       {done >= total && (
