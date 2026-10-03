@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { depositFn, purchasePlanFn } from "@/lib/app.functions";
+import { getPlanImage } from "@/lib/brand";
 import { MZN, PAYMENT_FIELDS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -217,7 +218,11 @@ const balance = Number(profile?.balance ?? 0);
         {(plans ?? []).map((plan) => (
           <article key={plan.id} className="surface-card overflow-hidden">
             <div className="flex items-center gap-3 border-b border-border bg-[image:var(--gradient-soft)] p-4">
-              <img src={logo} alt="" className="size-12 rounded-xl object-cover ring-1 ring-border" />
+              <img
+                src={settings?.[`plan_${plan.id}_image_url`] || getPlanImage(plan.id)}
+                alt={`Imagem do ${plan.name}`}
+                className="size-16 rounded-xl object-cover ring-1 ring-border"
+              />
               <div>
                 <h2 className="font-bold">{plan.name}</h2>
                 <p className="text-xs text-muted-foreground">{plan.duration_days} dias</p>
