@@ -325,13 +325,11 @@ function AuthPage() {
 
       if (!raw) {
         throw new Error(
-          "Informe o seu número de telefone ou e-mail.",
+          "Informe o seu número de telefone.",
         );
       }
 
-      const login = raw.includes("@")
-        ? raw
-        : phoneEmail(raw);
+      const login = phoneEmail(raw);
 
       const { error } =
         await supabase.auth.signInWithPassword(
@@ -575,7 +573,7 @@ function AuthPage() {
               <>
                 <Field
                   id="identifier"
-                  label="E-mail ou Telefone (+258)"
+                  label="Número de telefone (+258)"
                   value={
                     form.identifier
                   }
@@ -583,7 +581,7 @@ function AuthPage() {
                     "identifier",
                   )}
                   required
-                  placeholder="ex: +258 861585911 ou saloobeet@gmail.com"
+                  placeholder="ex: +258 841234567"
                 />
 
                 <div className="flex items-center gap-2 rounded-lg bg-primary/5 p-3 text-xs text-primary/80">
