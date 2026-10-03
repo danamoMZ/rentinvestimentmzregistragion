@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, UsersRound } from "lucide-react";
+import { Copy, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/use-session";
-import { MZN } from "@/lib/format";
+import { MZN, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/app/team")({
@@ -53,43 +53,89 @@ function Team() {
   };
 
   return (
-    <div className="min-h-screen space-y-5 bg-[#050b09] pb-8">
-      <header className="-mx-4 flex items-center gap-4 rounded-b-[2.75rem] border-b border-border/60 bg-[#0b2119] px-5 py-5">
-        <button type="button" onClick={() => window.history.back()} className="flex size-12 items-center justify-center rounded-full border border-border/70" aria-label="Voltar"><ArrowLeft className="size-6" /></button>
-        <h1 className="flex-1 text-center text-2xl font-black">Análise de Equipe</h1><span className="size-12" />
-      </header>
-      <section className="mx-4 rounded-[2.5rem] border border-primary/60 bg-[linear-gradient(135deg,#0c512f,#0d3d27)] p-6">
-        <div className="grid grid-cols-2 divide-x divide-primary/50">
-          <Summary label="TOTAL DE MEMBROS" value={String(referrals.length)} />
-          <Summary label="ATIVO (PCE)" value={String(rewarded)} />
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">A minha equipa</h1>
+        <p className="text-sm text-muted-foreground">Convide amigos e ganhe comissões por cada plano ativado.</p>
+      </div>
+
+      <div className="surface-card space-y-3 p-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Código de convite</p>
+          <div className="mt-1 flex items-center gap-2">
+            <p className="text-2xl font-extrabold tracking-widest">{profile?.referral_code ?? "—"}</p>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => copy(profile?.referral_code ?? "", "Código")}
+              aria-label="Copiar código"
+            >
+              <Copy className="size-4" />
+            </Button>
+          </div>
         </div>
-      </section>
-      <div className="mx-4 flex rounded-3xl border border-border/80 bg-[#111b17] p-1.5">
-        <button type="button" className="flex-1 rounded-2xl bg-primary px-3 py-4 text-sm font-black text-primary-foreground">VISÃO GERAL</button>
-        <button type="button" className="flex-1 rounded-2xl px-3 py-4 text-sm font-black text-muted-foreground" onClick={() => document.getElementById("team-members")?.scrollIntoView({behavior:"smooth"})}>LISTA DE MEMBROS</button>
+        <div className="flex gap-2">
+          <input
+            readOnly
+            value={link}
+            className="w-full truncate rounded-lg border border-input bg-secondary px-3 py-2 text-xs"
+          />
+          <Button onClick={() => copy(link, "Link")}>Copiar</Button>
+        </div>
       </div>
-      <div className="mx-4 grid grid-cols-4 gap-2">
-        {["NÍVEL A","NÍVEL B","NÍVEL C","GERAL"].map((level,index)=><span key={level} className={`rounded-full border px-2 py-3 text-center text-xs font-black ${index===0?"border-primary text-primary":"border-border text-muted-foreground"}`}>{level}</span>)}
+
+      <div className="grid grid-cols-3 gap-3">
+        <Stat label="Convidados" value={String((referrals ?? []).length)} />
+        <Stat label="Ativos" value={String(rewarded)} />
+        <Stat label="Ganhos" value={MZN(earned)} />
       </div>
-      <section className="mx-4 grid grid-cols-2 gap-3">
-        <Stat label="DEPÓSITO TOTAL" value={MZN(0)} />
-        <Stat label="SAQUE TOTAL" value={MZN(0)} />
-        <Stat label="TAREFAS CONCLUÍDAS" value="0" />
-        <Stat label="COMISSÃO" value={MZN(earned)} />
-      </section>
-      <section id="team-members" className="mx-4 overflow-hidden rounded-[2.25rem] border border-border/80 bg-[#111b17]">
-        <div className="grid grid-cols-4 bg-[#17231e] px-5 py-5 text-xs font-black text-muted-foreground"><span>MEMBRO</span><span>RECARREGAR</span><span>TAREFAS</span><span>LUCRO</span></div>
-        {referrals.length===0 ? <div className="flex min-h-40 items-center justify-center gap-3 text-sm font-bold text-muted-foreground"><UsersRound className="size-6"/>Nenhum membro encontrado</div> : referrals.map(r=><div key={r.id} className="grid grid-cols-4 gap-2 border-t border-border/70 px-5 py-5 text-sm"><span className="truncate font-bold">#{r.referred_id.slice(0,8)}</span><span>—</span><span>—</span><span className="font-bold text-primary">{MZN(r.reward_amount ?? 0)}</span></div>)}
-      </section>
+
+      <div className="surface-card p-4">
+        <h2 className="text-sm font-semibold">Níveis de comissão</h2>
+        <div className="mt-3 divide-y divide-border">
+          {LEVELS.map((l) => (
+            <div key={l.level} className="flex items-center justify-between py-2.5 text-sm">
+              <span>
+                <strong>Nível {l.level}</strong> · {l.range}
+              </span>
+              <span className="font-bold text-primary">{l.pct}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="surface-card p-4">
+        <h2 className="text-sm font-semibold">Convidados</h2>
+        {(referrals ?? []).length === 0 ? (
+          <div className="py-8 text-center">
+            <Users className="mx-auto size-7 text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">Ainda não convidou ninguém.</p>
+          </div>
+        ) : (
+          <div className="mt-3 divide-y divide-border">
+            {(referrals ?? []).map((r) => (
+              <div key={r.id} className="flex items-center justify-between py-2.5 text-sm">
+                <div>
+                  <p className="font-medium">Convidado #{r.referred_id.slice(0, 8)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(r.created_at)}</p>
+                </div>
+                <span className={r.rewarded ? "font-semibold text-success" : "text-muted-foreground"}>
+                  {r.rewarded ? `+${MZN(r.reward_amount)}` : "Sem plano ativo"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return <div className="px-5"><p className="text-sm font-bold text-white/70">{label}</p><p className="mt-2 text-3xl font-black">{value}</p></div>;
-}
-
 function Stat({ label, value }: { label: string; value: string }) {
-  return <div className="min-h-32 rounded-[2rem] border border-border bg-[#111b17] p-6"><p className="text-xs font-extrabold text-muted-foreground">{label}</p><p className="mt-5 text-2xl font-black">{value}</p></div>;
+  return (
+    <div className="surface-card p-3 text-center">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-bold">{value}</p>
+    </div>
+  );
 }
