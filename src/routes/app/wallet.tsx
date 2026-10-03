@@ -133,7 +133,7 @@ function WalletPage() {
       </div>
     )}
     <p className="text-xs uppercase tracking-widest text-muted-foreground">
-      Saldo disponível
+      Saldo para levantamento
     </p>
     <p className="text-3xl font-extrabold">{MZN(profile?.balance)}</p>
   </div>
@@ -146,7 +146,7 @@ function WalletPage() {
   <div className="surface-card space-y-3 p-4">
     <h2 className="text-sm font-semibold">Pedir saque</h2>
     <p className="text-xs text-muted-foreground">
-      Mínimo 125 MZN · Máximo 18.000 MZN · Taxa de 10% · Requer plano ativo.
+      Primeiro saque: mínimo 20 MZN. Saques seguintes: mínimo 150 MZN. Máximo 18.000 MZN. Taxa de 10%.
     </p>
 
     <div className="space-y-1.5">
