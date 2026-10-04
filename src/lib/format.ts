@@ -58,8 +58,10 @@ export const SUPPORT_FIELDS = [
 ] as const;
 
 export const PAYMENT_FIELDS = [
-  { key: "payment_emola", label: "Número e-Mola", placeholder: "865982221" },
-  { key: "payment_holder", label: "Nome do titular", placeholder: "Nome do titular" },
+  { key: "payment_mpesa", label: "Número M-Pesa", placeholder: "841783243" },
+  { key: "payment_mpesa_holder", label: "Titular M-Pesa", placeholder: "Nome do titular" },
+  { key: "payment_emola", label: "Número e-Mola", placeholder: "868657696" },
+  { key: "payment_emola_holder", label: "Titular e-Mola", placeholder: "Nome do titular" },
   { key: "payment_p20", label: "Carteira P20", placeholder: "Número ou endereço P20" },
   { key: "payment_bnb", label: "Carteira BNB", placeholder: "Endereço BNB" },
   { key: "payment_usdt_trc20", label: "Endereço USDT TRC20", placeholder: "Endereço TRC20" },
@@ -67,11 +69,20 @@ export const PAYMENT_FIELDS = [
   { key: "payment_bnb_qr_url", label: "QR Code BNB (URL)", placeholder: "https://.../qr-bnb.png" },
 ] as const;
 
+export const RECHARGE_QUICK_AMOUNT_DEFAULTS = [900, 3000, 10200, 30000, 200000, 500000, 1000000, 2000000, 5000000] as const;
+
 export const PLAN_IMAGE_FIELDS = Array.from({ length: 11 }, (_, index) => ({
   key: `plan_${index + 1}_image_url`,
   label: `Imagem do VIP ${index + 1}`,
   placeholder: "https://.../imagem.jpg ou /caminho/da/imagem",
 }));
+
+export const RECHARGE_SETTINGS_FIELDS = [
+  { key: "recharge_min_amount", label: "Valor mínimo de recarga (MZN)", placeholder: "200" },
+  { key: "recharge_quick_amounts", label: "Valores rápidos (separados por vírgula)", placeholder: "900,3000,10200,30000,200000,500000,1000000,2000000,5000000" },
+  { key: "welcome_title", label: "Título do anúncio de boas-vindas", placeholder: "Bem-vindo à BLUE ORIGIN" },
+  { key: "welcome_message", label: "Mensagem personalizada de boas-vindas", placeholder: "Mensagem da BLUE ORIGIN..." },
+] as const;
 
 export const TASK_MEDIA_FIELDS = Array.from({ length: 5 }, (_, index) => ({
   index: index + 1,

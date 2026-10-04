@@ -1,14 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDays, Coins, CreditCard, Crown, Loader2, Upload, Wallet, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  Coins,
+  Copy,
+  CreditCard,
+  Crown,
+  Loader2,
+  Smartphone,
+  Upload,
+  Wallet,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { depositFn, purchasePlanFn } from "@/lib/app.functions";
 import { getPlanImage } from "@/lib/brand";
-import { MZN, PAYMENT_FIELDS } from "@/lib/format";
+import { MZN, PAYMENT_FIELDS, RECHARGE_QUICK_AMOUNT_DEFAULTS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +40,8 @@ type Plan = {
   total_task_income: number;
   duration_days: number;
 };
+
+type RechargeMethod = "mpesa" | "emola" | "p20" | "bnb" | "usdt";
 
 const PLAN_GRADIENTS = [
   "bg-[linear-gradient(135deg,#174f39,#0d3024)]",
@@ -48,7 +63,9 @@ function Plans() {
   const deposit = useServerFn(depositFn);
   const purchase = useServerFn(purchasePlanFn);
 
+  const [step, setStep] = useState<"amount" | "method" | "payment" | "submitted">("amount");
   const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState<RechargeMethod | null>(null);
   const [sender, setSender] = useState("");
   const [txId, setTxId] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -125,26 +142,68 @@ function Plans() {
   const vipCredits = Number(profile?.promotional_balance ?? 0);
   const cashBalance = Number(profile?.balance ?? 0);
   const rechargeAmount = Number(amount || 0);
-  const rechargeCredit = rechargeAmount > 0 ? rechargeAmount * 3 : 0;
+  const rechargeCredit = rechargeAmount * 3;
+  const minRecharge = Number(settings?.recharge_min_amount || 200);
 
-  const submitRecharge = async () => {
-    if (!userId) {
-      toast.error("Não foi possível identificar a sua conta.");
-      return;
+  const quickAmounts = useMemo(() => {
+    const raw = settings?.recharge_quick_amounts?.trim();
+    if (!raw) return [...RECHARGE_QUICK_AMOUNT_DEFAULTS];
+    const values = raw
+      .split(",")
+      .map((v) => Number(v.trim()))
+      .filter((v) => Number.isFinite(v) && v > 0);
+    return values.length ? values : [...RECHARGE_QUICK_AMOUNT_DEFAULTS];
+  }, [settings?.recharge_quick_amounts]);
+
+  const methods = useMemo(() => {
+    const list: { id: RechargeMethod; label: string; account: string; holder: string; color: string }[] = [
+      { id: "mpesa", label: "M-Pesa", account: settings?.payment_mpesa || "", holder: settings?.payment_mpesa_holder || settings?.payment_holder || "", color: "text-red-600" },
+      { id: "emola", label: "E-Mola", account: settings?.payment_emola || "", holder: settings?.payment_emola_holder || settings?.payment_holder || "", color: "text-orange-600" },
+      { id: "p20", label: "P20", account: settings?.payment_p20 || "", holder: "", color: "text-primary" },
+      { id: "bnb", label: "BNB", account: settings?.payment_bnb || "", holder: "", color: "text-yellow-600" },
+      { id: "usdt", label: "USDT TRC20", account: settings?.payment_usdt_trc20 || "", holder: "", color: "text-emerald-600" },
+    ];
+    return list.filter((item) => item.account.trim());
+  }, [settings]);
+
+  const selectedMethod = methods.find((item) => item.id === method);
+
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Copiado.");
+    } catch {
+      toast.error("Não foi possível copiar.");
     }
-    if (!Number.isFinite(rechargeAmount) || rechargeAmount <= 0) {
-      toast.error("Informe um valor de recarga maior que 0 MZN.");
-      return;
-    }
-    if (!sender.trim() || !txId.trim()) {
-      toast.error("Preencha o número usado no pagamento e o ID da transação.");
+  };
+
+  const startRecharge = () => {
+    if (!Number.isFinite(rechargeAmount) || rechargeAmount < minRecharge) {
+      toast.error(`A recarga mínima é ${MZN(minRecharge)}.`);
       return;
     }
     if (pending) {
       toast.error("Já existe uma recarga em análise. Aguarde a aprovação.");
       return;
     }
+    setStep("method");
+  };
 
+  const chooseMethod = (value: RechargeMethod) => {
+    setMethod(value);
+    setStep("payment");
+  };
+
+  const submitRecharge = async () => {
+    if (!userId || !selectedMethod) return;
+    if (!sender.trim()) {
+      toast.error("Introduza a conta/número que utilizou para pagar.");
+      return;
+    }
+    if (!txId.trim()) {
+      toast.error("Introduza o ID ou referência da transação.");
+      return;
+    }
     setBusy(true);
     try {
       let proofPath: string | null = null;
@@ -165,12 +224,9 @@ function Plans() {
         },
       });
 
-      toast.success("Recarga enviada. Aguarde a aprovação do administrador.");
-      setAmount("");
-      setSender("");
-      setTxId("");
-      setFile(null);
+      setStep("submitted");
       await queryClient.invalidateQueries();
+      toast.success("Recarga enviada para aprovação.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível enviar a recarga.");
     } finally {
@@ -178,32 +234,25 @@ function Plans() {
     }
   };
 
+  const resetRecharge = () => {
+    setStep("amount");
+    setMethod(null);
+    setSender("");
+    setTxId("");
+    setFile(null);
+  };
+
   const buyWithCredits = async (plan: Plan) => {
-    if (!userId) {
-      toast.error("Não foi possível identificar a sua conta.");
-      return;
-    }
+    if (!userId) return;
     if (vipCredits < Number(plan.price)) {
-      toast.error(
-        `Créditos VIP insuficientes. O VIP ${plan.id} custa ${MZN(plan.price)} e você tem ${MZN(vipCredits)}.`,
-      );
+      toast.error(`Créditos VIP insuficientes. O VIP ${plan.id} custa ${MZN(plan.price)} e você tem ${MZN(vipCredits)}.`);
       return;
     }
-
-    const confirmed = window.confirm(
-      `Ativar VIP ${plan.id} por ${MZN(plan.price)} usando exclusivamente os seus créditos VIP?
-
-Créditos actuais: ${MZN(vipCredits)}
-Créditos depois da compra: ${MZN(vipCredits - Number(plan.price))}`,
-    );
-    if (!confirmed) return;
-
+    if (!window.confirm(`Ativar VIP ${plan.id} por ${MZN(plan.price)} usando os seus créditos VIP?\n\nCréditos depois: ${MZN(vipCredits - Number(plan.price))}`)) return;
     setBuyingPlanId(plan.id);
     try {
       const result = await purchase({ data: { planId: plan.id } });
-      toast.success(
-        `${result.planName} ativado com sucesso! Créditos VIP restantes: ${MZN(result.promotionalBalance)}.`,
-      );
+      toast.success(`${result.planName} ativado! Créditos restantes: ${MZN(result.promotionalBalance)}.`);
       await queryClient.invalidateQueries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível ativar o VIP.");
@@ -222,9 +271,7 @@ Créditos depois da compra: ${MZN(vipCredits - Number(plan.price))}`,
             </div>
             <div>
               <h1 className="text-xl font-extrabold">Créditos para VIPs</h1>
-              <p className="text-xs text-white/65">
-                As recargas aprovadas são convertidas em créditos exclusivos para ativação de VIPs.
-              </p>
+              <p className="text-xs text-white/65">Recarregue e, após aprovação, receba 3x o valor em créditos exclusivos para VIPs.</p>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -239,100 +286,127 @@ Créditos depois da compra: ${MZN(vipCredits - Number(plan.price))}`,
           </div>
         </div>
 
-        <div className="space-y-3 p-5">
-          <div>
-            <h2 className="font-extrabold">Recarregar</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Exemplo: uma recarga de 100 MZN, depois de aprovada pelo administrador, gera 300 MZN em créditos VIP. Estes créditos não entram no saldo levantável.
-            </p>
-          </div>
-
-          {pending && (
-            <div className="rounded-2xl border border-warning/40 bg-warning/10 p-3 text-sm">
-              <p className="font-bold">Recarga em análise</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Valor enviado: {MZN(pending.amount)} · crédito previsto: {MZN(Number(pending.amount) * 3)}
-              </p>
+        {step === "amount" && (
+          <div className="space-y-5 p-5">
+            <div>
+              <h2 className="text-xl font-extrabold">Recarregar</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Escolha um valor rápido abaixo ou introduza um valor personalizado.</p>
             </div>
-          )}
-
-          <div className="space-y-1.5">
-            <Label htmlFor="recharge-amount">Valor da recarga (MZN)</Label>
+            <div className="grid grid-cols-3 gap-3">
+              {quickAmounts.map((value) => (
+                <Button key={value} type="button" variant={rechargeAmount === value ? "default" : "outline"} className="h-16 rounded-2xl text-base font-bold" onClick={() => setAmount(String(value))}>
+                  {value}
+                </Button>
+              ))}
+            </div>
+            <div className="text-center text-sm text-muted-foreground">
+              Selecionado: <strong className="text-xl text-primary">{MZN(rechargeAmount)}</strong>
+            </div>
             <Input
-              id="recharge-amount"
               type="number"
-              min="1"
+              min={minRecharge}
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="100"
-              disabled={!!pending}
+              placeholder="Ou introduza um valor personalizado"
+              className="h-14 rounded-2xl text-base"
             />
+            <div className="rounded-2xl border border-border bg-secondary/50 p-4 text-sm">
+              <p className="font-bold">Regras de recarga</p>
+              <p className="mt-2 text-muted-foreground">Valor mínimo de recarga: {MZN(minRecharge)}.</p>
+              <p className="mt-1 text-muted-foreground">Após aprovação, o valor da recarga é multiplicado por 3 e convertido em créditos VIP.</p>
+            </div>
+            <Button className="h-14 w-full rounded-2xl text-base font-extrabold" onClick={startRecharge}>
+              <Wallet className="mr-2 size-5" /> Recarregar agora
+            </Button>
           </div>
+        )}
 
-          {rechargeAmount > 0 && (
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-muted-foreground">Crédito VIP após aprovação</span>
-                <strong className="text-lg text-primary">{MZN(rechargeCredit)}</strong>
+        {step === "method" && (
+          <div className="space-y-5 p-5">
+            <StepHeader title="Selecionar método de pagamento" onBack={() => setStep("amount")} />
+            <div className="rounded-2xl bg-secondary/60 p-4 text-center">
+              <p className="text-sm text-muted-foreground">Valor do pagamento</p>
+              <p className="mt-1 text-2xl font-extrabold text-primary">{MZN(rechargeAmount)}</p>
+            </div>
+            <p className="text-sm font-semibold">Selecione um método de pagamento</p>
+            {methods.length === 0 ? (
+              <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                Os métodos de pagamento ainda não foram configurados pelo administrador.
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Conversão: 1 MZN de recarga = 3 MZN em créditos VIP.</p>
-            </div>
-          )}
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {methods.map((item) => (
+                  <button key={item.id} type="button" onClick={() => chooseMethod(item.id)} className="rounded-2xl border border-border bg-card p-5 text-left transition hover:border-primary hover:shadow-md">
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-secondary">
+                      <Smartphone className={`size-7 ${item.color}`} />
+                    </div>
+                    <p className="mt-3 font-extrabold">{item.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Pagamento manual</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="sender">Número usado no pagamento</Label>
-              <Input id="sender" value={sender} onChange={(e) => setSender(e.target.value)} placeholder="84 000 0000" disabled={!!pending} />
+        {step === "payment" && selectedMethod && (
+          <div className="space-y-5 p-5">
+            <StepHeader title="Copiar e pagar" onBack={() => setStep("method")} />
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <p className="text-sm text-muted-foreground">Copie esta conta <strong className="text-primary">{selectedMethod.label}</strong> e efetue o pagamento.</p>
+              <p className="mt-4 text-xs text-muted-foreground">Valor total</p>
+              <p className="text-3xl font-extrabold text-primary">{MZN(rechargeAmount)}</p>
+              <CopyRow label={selectedMethod.label} value={selectedMethod.account} onCopy={copy} />
+              {selectedMethod.holder && <CopyRow label="Nome da conta" value={selectedMethod.holder} onCopy={copy} />}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="txid">ID da transação</Label>
-              <Input id="txid" value={txId} onChange={(e) => setTxId(e.target.value)} placeholder="Ex.: PP2504..." disabled={!!pending} />
+
+            {selectedMethod.id === "usdt" && settings?.payment_usdt_qr_url && (
+              <img src={settings.payment_usdt_qr_url} alt="QR Code USDT" className="mx-auto size-48 rounded-xl border object-contain p-2" />
+            )}
+
+            <div className="rounded-2xl border border-border bg-secondary/50 p-4">
+              <p className="font-bold">Pagamento concluído?</p>
+              <p className="mt-1 text-sm text-muted-foreground">Depois de pagar, introduza a referência da transação e a conta que utilizou.</p>
+              <div className="mt-4 grid gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="sender">A sua conta de pagamento</Label>
+                  <Input id="sender" value={sender} onChange={(e) => setSender(e.target.value)} placeholder="+258 84 000 0000" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="txid">ID/referência da transação</Label>
+                  <Input id="txid" value={txId} onChange={(e) => setTxId(e.target.value)} placeholder="ID da transação" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="proof">Comprovativo (opcional)</Label>
+                  <Input id="proof" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                </div>
+              </div>
+              <Button className="mt-4 h-12 w-full rounded-2xl" onClick={submitRecharge} disabled={busy}>
+                {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Enviar comprovativo
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground">A recarga fica pendente até o administrador confirmar o pagamento.</p>
             </div>
           </div>
+        )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="proof">Comprovativo (opcional)</Label>
-            <Input id="proof" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} disabled={!!pending} />
+        {step === "submitted" && (
+          <div className="space-y-5 p-6 text-center">
+            <CheckCircle2 className="mx-auto size-14 text-success" />
+            <h2 className="text-2xl font-extrabold">Pagamento enviado</h2>
+            <p className="text-sm text-muted-foreground">A sua recarga de {MZN(rechargeAmount)} foi enviada para análise. Após aprovação, serão adicionados {MZN(rechargeCredit)} em créditos VIP.</p>
+            <Button className="w-full rounded-2xl" onClick={resetRecharge}>Nova recarga</Button>
           </div>
-
-          <Button className="w-full rounded-2xl" onClick={submitRecharge} disabled={busy || !!pending}>
-            {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
-            <Upload className="mr-2 size-4" />
-            Enviar recarga para aprovação
-          </Button>
-
-          <div className="rounded-2xl border border-border bg-secondary/50 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground">Dados de pagamento</p>
-            <div className="mt-2 grid gap-2">
-              {PAYMENT_FIELDS.map((field) => {
-                const value = settings?.[field.key] || "";
-                return (
-                  <div key={field.key} className="flex items-center justify-between gap-3">
-                    <span>{field.label}</span>
-                    <span className="font-bold text-foreground">{value || "—"}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        )}
       </section>
 
       <section className="space-y-4">
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight">Privilégios VIP</h2>
-          <p className="text-sm text-muted-foreground">
-            VIP 1 a VIP 11 · percorra a lista para ver o valor e os benefícios de cada plano.
-          </p>
+          <p className="text-sm text-muted-foreground">VIP 1 a VIP 11 · percorra a lista para ver o valor e os benefícios de cada plano.</p>
         </div>
-
-        {isLoading && (
-          <div className="flex justify-center py-10">
-            <Loader2 className="size-6 animate-spin text-primary" />
-          </div>
-        )}
-
+        {isLoading && <div className="flex justify-center py-10"><Loader2 className="size-6 animate-spin text-primary" /></div>}
         {(plans ?? []).map((plan, index) => {
           const active = activePlan?.plan_id === plan.id;
           const enough = vipCredits >= Number(plan.price);
@@ -342,39 +416,18 @@ Créditos depois da compra: ${MZN(vipCredits - Number(plan.price))}`,
                 <div className="absolute inset-0 bg-black/10" />
                 <div className="relative z-10 pr-28">
                   <p className="text-3xl font-extrabold tracking-tight">VIP {plan.id}</p>
-                  <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/15 px-3 py-2 text-sm font-bold backdrop-blur">
-                    <CalendarDays className="size-4" />
-                    Ciclo: {plan.duration_days} dias
-                  </div>
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/15 px-3 py-2 text-sm font-bold backdrop-blur"><CalendarDays className="size-4" /> Ciclo: {plan.duration_days} dias</div>
                 </div>
-                <img
-                  src={settings?.[`plan_${plan.id}_image_url`] || getPlanImage(plan.id)}
-                  alt={`Ícone VIP ${plan.id}`}
-                  className="absolute right-5 top-5 size-28 object-contain drop-shadow-2xl sm:size-32"
-                />
+                <img src={settings?.[`plan_${plan.id}_image_url`] || getPlanImage(plan.id)} alt={`Imagem VIP ${plan.id}`} className="absolute right-5 top-5 size-28 object-contain drop-shadow-2xl sm:size-32" />
               </div>
-
               <div className="space-y-0 px-6 py-5">
                 <PlanRow icon={<Coins className="size-5" />} label="Recompensa por tarefa" value={MZN(plan.task_value)} />
                 <PlanRow icon={<Zap className="size-5" />} label="Limite diário de tarefas" value={`${plan.daily_task_count} tarefas`} />
                 <PlanRow icon={<CreditCard className="size-5" />} label="Taxa de ativação" value={MZN(plan.price)} />
                 <PlanRow icon={<Wallet className="size-5" />} label="Rendimento diário" value={MZN(plan.daily_income)} />
-
                 <div className="pt-5">
-                  <Button
-                    className="h-14 w-full rounded-2xl text-base font-extrabold shadow-lg"
-                    disabled={active || !enough || !!pending || buyingPlanId === plan.id}
-                    onClick={() => buyWithCredits(plan)}
-                  >
-                    {buyingPlanId === plan.id ? (
-                      <><Loader2 className="mr-2 size-5 animate-spin" /> A ativar...</>
-                    ) : active ? (
-                      <><Crown className="mr-2 size-5" /> PLANO ATUAL</>
-                    ) : enough ? (
-                      <><Crown className="mr-2 size-5" /> PLANO DE ATUALIZAÇÃO</>
-                    ) : (
-                      `PRECISA DE ${MZN(Number(plan.price) - vipCredits)} CRÉDITOS`
-                    )}
+                  <Button className="h-14 w-full rounded-2xl text-base font-extrabold shadow-lg" disabled={active || !enough || !!pending || buyingPlanId === plan.id} onClick={() => buyWithCredits(plan)}>
+                    {buyingPlanId === plan.id ? <><Loader2 className="mr-2 size-5 animate-spin" /> A ativar...</> : active ? <><Crown className="mr-2 size-5" /> PLANO ATUAL</> : enough ? <><Crown className="mr-2 size-5" /> ATIVAR VIP</> : `PRECISA DE ${MZN(Number(plan.price) - vipCredits)} CRÉDITOS`}
                   </Button>
                 </div>
               </div>
@@ -386,13 +439,31 @@ Créditos depois da compra: ${MZN(vipCredits - Number(plan.price))}`,
   );
 }
 
+function StepHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Button variant="ghost" size="icon" onClick={onBack} aria-label="Voltar"><ArrowLeft className="size-5" /></Button>
+      <h2 className="text-xl font-extrabold">{title}</h2>
+    </div>
+  );
+}
+
+function CopyRow({ label, value, onCopy }: { label: string; value: string; onCopy: (value: string) => void }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-secondary/40 p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <strong className="break-all text-lg text-primary">{value}</strong>
+        <Button variant="outline" size="icon" onClick={() => onCopy(value)} aria-label={`Copiar ${label}`}><Copy className="size-4" /></Button>
+      </div>
+    </div>
+  );
+}
+
 function PlanRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-dashed border-border/70 py-4 last:border-b-0">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="shrink-0 text-primary">{icon}</span>
-        <span className="text-sm font-semibold text-muted-foreground sm:text-base">{label}</span>
-      </div>
+      <div className="flex min-w-0 items-center gap-3"><span className="shrink-0 text-primary">{icon}</span><span className="text-sm font-semibold text-muted-foreground sm:text-base">{label}</span></div>
       <span className="shrink-0 text-base font-extrabold sm:text-lg">{value}</span>
     </div>
   );

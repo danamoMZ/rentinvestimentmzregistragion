@@ -43,6 +43,7 @@ import {
   STATUS_LABEL,
   SUPPORT_FIELDS,
   TASK_MEDIA_FIELDS,
+  RECHARGE_SETTINGS_FIELDS,
   formatDateTime,
 } from "@/lib/format";
 import { Logo } from "@/components/brand/Logo";
@@ -122,7 +123,7 @@ function AdminPage() {
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Administração</h1>
-          <p className="text-sm text-muted-foreground">Gestão completa da plataforma RENT INVESTIMENT.</p>
+          <p className="text-sm text-muted-foreground">Gestão completa da plataforma BLUE ORIGIN.</p>
         </div>
 
         <Tabs defaultValue="deposits">
@@ -1098,7 +1099,7 @@ function Settings() {
     setBusy(true);
     try {
       const payload: Record<string, string> = {};
-      [...SUPPORT_FIELDS, ...PAYMENT_FIELDS, ...PLAN_IMAGE_FIELDS].forEach((f) => {
+      [...SUPPORT_FIELDS, ...PAYMENT_FIELDS, ...PLAN_IMAGE_FIELDS, ...RECHARGE_SETTINGS_FIELDS].forEach((f) => {
         payload[f.key] = values[f.key] ?? "";
       });
       TASK_MEDIA_FIELDS.forEach((f) => {
@@ -1140,6 +1141,16 @@ function Settings() {
             {SUPPORT_FIELDS.map((f) => field(f.key, f.label, f.placeholder))}
           </div>
         </div>
+        <div>
+          <h2 className="text-sm font-semibold">Recarga BLUE ORIGIN</h2>
+          <p className="text-xs text-muted-foreground">
+            Configure o valor mínimo, os valores rápidos e a mensagem do anúncio. Os números de pagamento abaixo são usados na sequência de recarga.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {RECHARGE_SETTINGS_FIELDS.map((f) => field(f.key, f.label, f.placeholder))}
+          </div>
+        </div>
+
         <div>
           <h2 className="text-sm font-semibold">Dados de pagamento (depósitos)</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
