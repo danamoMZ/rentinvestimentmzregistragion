@@ -24,7 +24,7 @@ function maputoDate(iso: string) {
 function dayDifference(startDate: string, endDate: string) {
   const [sy, sm, sd] = startDate.split("-").map(Number);
   const [ey, em, ed] = endDate.split("-").map(Number);
-  return Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86400000);
+  return Math.round((Date.UTC(ey ?? 0, (em ?? 1) - 1, ed ?? 1) - Date.UTC(sy ?? 0, (sm ?? 1) - 1, sd ?? 1)) / 86400000);
 }
 
 function Tasks() {
@@ -141,7 +141,7 @@ function Tasks() {
 
   const startWatch = async (index: number) => {
     try {
-      const { error } = await supabase.rpc("start_task_watch", { _task_index: index });
+      const { error } = await (supabase as any).rpc("start_task_watch", { _task_index: index });
       if (error) throw new Error(error.message);
       setWatchStartedAt((current) => ({ ...current, [index]: Date.now() }));
       setWatchedSeconds((current) => ({ ...current, [index]: 0 }));

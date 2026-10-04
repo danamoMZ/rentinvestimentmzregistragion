@@ -143,25 +143,25 @@ function Plans() {
   const cashBalance = Number(profile?.balance ?? 0);
   const rechargeAmount = Number(amount || 0);
   const rechargeCredit = rechargeAmount * 3;
-  const minRecharge = Number(settings?.recharge_min_amount || 200);
+  const minRecharge = Number(settings?['recharge_min_amount'] || 200);
 
   const quickAmounts = useMemo(() => {
-    const raw = settings?.recharge_quick_amounts?.trim();
+    const raw = settings?['recharge_quick_amounts']?.trim();
     if (!raw) return [...RECHARGE_QUICK_AMOUNT_DEFAULTS];
     const values = raw
       .split(",")
       .map((v) => Number(v.trim()))
       .filter((v) => Number.isFinite(v) && v > 0);
     return values.length ? values : [...RECHARGE_QUICK_AMOUNT_DEFAULTS];
-  }, [settings?.recharge_quick_amounts]);
+  }, [settings?['recharge_quick_amounts']]);
 
   const methods = useMemo(() => {
     const list: { id: RechargeMethod; label: string; account: string; holder: string; color: string }[] = [
-      { id: "mpesa", label: "M-Pesa", account: settings?.payment_mpesa || "", holder: settings?.payment_mpesa_holder || settings?.payment_holder || "", color: "text-red-600" },
-      { id: "emola", label: "E-Mola", account: settings?.payment_emola || "", holder: settings?.payment_emola_holder || settings?.payment_holder || "", color: "text-orange-600" },
-      { id: "p20", label: "P20", account: settings?.payment_p20 || "", holder: "", color: "text-primary" },
-      { id: "bnb", label: "BNB", account: settings?.payment_bnb || "", holder: "", color: "text-yellow-600" },
-      { id: "usdt", label: "USDT TRC20", account: settings?.payment_usdt_trc20 || "", holder: "", color: "text-emerald-600" },
+      { id: "mpesa", label: "M-Pesa", account: settings?['payment_mpesa'] || "", holder: settings?['payment_mpesa_holder'] || settings?['payment_holder'] || "", color: "text-red-600" },
+      { id: "emola", label: "E-Mola", account: settings?['payment_emola'] || "", holder: settings?['payment_emola_holder'] || settings?['payment_holder'] || "", color: "text-orange-600" },
+      { id: "p20", label: "P20", account: settings?['payment_p20'] || "", holder: "", color: "text-primary" },
+      { id: "bnb", label: "BNB", account: settings?['payment_bnb'] || "", holder: "", color: "text-yellow-600" },
+      { id: "usdt", label: "USDT TRC20", account: settings?['payment_usdt_trc20'] || "", holder: "", color: "text-emerald-600" },
     ];
     return list.filter((item) => item.account.trim());
   }, [settings]);
@@ -361,8 +361,8 @@ function Plans() {
               {selectedMethod.holder && <CopyRow label="Nome da conta" value={selectedMethod.holder} onCopy={copy} />}
             </div>
 
-            {selectedMethod.id === "usdt" && settings?.payment_usdt_qr_url && (
-              <img src={settings.payment_usdt_qr_url} alt="QR Code USDT" className="mx-auto size-48 rounded-xl border object-contain p-2" />
+            {selectedMethod.id === "usdt" && settings?['payment_usdt_qr_url'] && (
+              <img src={settings['payment_usdt_qr_url']} alt="QR Code USDT" className="mx-auto size-48 rounded-xl border object-contain p-2" />
             )}
 
             <div className="rounded-2xl border border-border bg-secondary/50 p-4">

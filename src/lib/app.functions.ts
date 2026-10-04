@@ -281,7 +281,7 @@ export const startTaskWatchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { taskIndex: number }) => data)
   .handler(async ({ data, context }) => {
-    const { data: result, error } = await context.supabase.rpc("start_task_watch", {
+    const { data: result, error } = await (context.supabase as any).rpc("start_task_watch", {
       _task_index: data.taskIndex,
     });
     if (error) throw new Error(error.message);

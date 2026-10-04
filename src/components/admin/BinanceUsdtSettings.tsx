@@ -23,9 +23,9 @@ type BinanceSettings = {
 type BinanceConnectionResult = {
   success: boolean;
   message: string;
-  enableReading?: boolean;
-  enableWithdrawals?: boolean;
-  ipRestrict?: boolean;
+  enableReading?: boolean | undefined;
+  enableWithdrawals?: boolean | undefined;
+  ipRestrict?: boolean | undefined;
 };
 
 type UsdtSettings = {
