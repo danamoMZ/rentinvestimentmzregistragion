@@ -685,7 +685,7 @@ function AuthPage() {
             ) : (
               <p>
                 {mode === "register"
-                  ? "Já tem conta?"
+                  ? "Já tenho conta?"
                   : "Ainda não tem conta?"}{" "}
 
                 <Link
