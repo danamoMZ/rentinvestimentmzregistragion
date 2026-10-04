@@ -171,7 +171,7 @@ function createRecentWin(): RecentWin {
 
     publicId: createRecentId(),
 
-    prize,
+    prize: prize ?? 2,
 
     createdAt:
       new Date().toISOString(),

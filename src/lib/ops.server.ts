@@ -1451,7 +1451,7 @@ async function getTrc20Transfers(
   txid?: string,
 ) {
   const apiKey =
-    process.env.TRON_PRO_API_KEY?.trim() || "";
+    process.env['TRON_PRO_API_KEY']?.trim() || "";
 
   const params = new URLSearchParams();
 
@@ -2235,10 +2235,10 @@ export async function getServerOutboundIp(
 
 function getBinanceApiCredentials() {
   const apiKey =
-    process.env.BINANCE_API_KEY?.trim() || "";
+    process.env['BINANCE_API_KEY']?.trim() || "";
 
   const apiSecret =
-    process.env.BINANCE_API_SECRET?.trim() || "";
+    process.env['BINANCE_API_SECRET']?.trim() || "";
 
   if (!apiKey || !apiSecret) {
     throw new Error(
@@ -2906,7 +2906,7 @@ export async function getUsdtAdminSettings(
         "min_deposit_usdt",
         "min_withdrawal_usdt",
         "updated_at",
-      ].join(","),
+      ].join(",") as "*",
     )
     .eq("id", true)
     .maybeSingle();
@@ -3050,7 +3050,7 @@ export async function updateUsdtAdminSettings(
         "min_deposit_usdt",
         "min_withdrawal_usdt",
         "updated_at",
-      ].join(","),
+      ].join(",") as "*",
     )
     .single();
 
