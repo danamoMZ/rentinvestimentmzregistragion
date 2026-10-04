@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const STORAGE_KEY = "ri-welcome-shown";
+const STORAGE_KEY = "blue-origin-welcome-shown";
 
 export function WelcomeGuide() {
   const { userId } = useSession();
@@ -84,12 +84,11 @@ export function WelcomeGuide() {
       <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden p-0">
         <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle className="text-xl">
-            Bem-vindo à RENT INVESTIMENT 👋
+            {settings?.["welcome_title"] || "Bem-vindo à BLUE ORIGIN 👋"}
           </DialogTitle>
 
           <DialogDescription>
-            Veja como a plataforma funciona e como pode maximizar os seus
-            ganhos.
+            {settings?.["welcome_message"] || "Bem-vindo à BLUE ORIGIN. Conheça a plataforma, acompanhe as atividades, consulte os seus VIPs e utilize os canais oficiais para novidades e suporte."}
           </DialogDescription>
         </DialogHeader>
 
@@ -100,17 +99,13 @@ export function WelcomeGuide() {
         >
           <Section icon={Gift} title="Bónus de boas-vindas">
             <p>
-              Ao criar a sua conta recebe automaticamente{" "}
-              <strong>50 MZN</strong> de bónus de registo, já disponíveis no
-              seu saldo.
+              Ao criar a sua conta, entra como <strong>RECRUTA</strong> e pode concluir 1 tarefa diária de 5 MZN durante 4 dias. Depois desse período, pode ativar um VIP com os seus créditos VIP.
             </p>
           </Section>
 
           <Section icon={Layers} title="Ativação do primeiro plano">
             <p>
-              Ao pagar o seu primeiro plano e após a aprovação do administrador,
-              o plano é ativado e recebe um bónus adicional de{" "}
-              <strong>100 MZN</strong>, creditado automaticamente na sua conta.
+              As recargas aprovadas são convertidas em créditos VIP. Por exemplo, 100 MZN de recarga geram 300 MZN em créditos para ativação dos VIPs; esses créditos não são levantáveis.
             </p>
           </Section>
 
