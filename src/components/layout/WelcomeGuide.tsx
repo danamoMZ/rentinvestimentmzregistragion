@@ -8,6 +8,7 @@ import {
   HeartHandshake,
   Wallet,
   ChevronDown,
+  Megaphone,
   ChevronUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +85,9 @@ export function WelcomeGuide() {
       <DialogContent className="flex max-h-[90vh] max-w-lg flex-col overflow-hidden p-0">
         <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle className="text-xl">
+            <span className="mb-3 flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Megaphone className="size-7" />
+            </span>
             {settings?.["welcome_title"] || "Bem-vindo à BLUE ORIGIN 👋"}
           </DialogTitle>
 
