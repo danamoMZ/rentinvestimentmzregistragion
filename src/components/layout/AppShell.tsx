@@ -245,6 +245,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </div>
       </nav>
+
+      {pathname !== "/app" && pathname !== "/app/" && pathname !== "/app/dashboard" && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          onClick={() => router.history.back()}
+          aria-label="Voltar"
+          title="Voltar"
+          className="fixed left-3 top-3 z-50 size-11 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur-xl lg:left-6 lg:top-20"
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
+      )}
     </div>
   );
 }
