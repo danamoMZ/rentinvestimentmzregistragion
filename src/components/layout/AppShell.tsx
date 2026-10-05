@@ -1,4 +1,4 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -17,6 +17,7 @@ import {
   HeartHandshake,
   Loader2,
   Gamepad2,
+  ArrowLeft,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +50,7 @@ const MORE = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, loading, userId } = useSession();
   const navigate = useNavigate();
+  const router = useRouter();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfile();
   const { data: isAdmin } = useIsAdmin();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -243,6 +245,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </div>
       </nav>
+
+      {pathname !== "/app" && pathname !== "/app/" && pathname !== "/app/dashboard" && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          onClick={() => router.history.back()}
+          aria-label="Voltar"
+          title="Voltar"
+          className="fixed left-3 top-3 z-50 size-11 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur-xl lg:left-6 lg:top-20"
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
+      )}
     </div>
   );
 }
