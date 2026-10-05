@@ -246,7 +246,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      {pathname !== "/app" && pathname !== "/app/" && pathname !== "/app/dashboard" && (
+      {pathname !== "/app" && pathname !== "/app/" && pathname !== "/app/dashboard" && pathname !== "/app/personal-info" && (
         <Button
           type="button"
           variant="secondary"

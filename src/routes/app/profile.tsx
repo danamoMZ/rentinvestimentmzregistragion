@@ -25,11 +25,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/app/profile")({
+  head: () => ({ meta: [
+    { title: "Conta — BLUE ORIGIN" },
+    { name: "description", content: "Consulte o saldo e gerencie a sua conta BLUE ORIGIN." },
+    { property: "og:title", content: "Conta — BLUE ORIGIN" },
+    { property: "og:description", content: "Saldo, análise e serviços da sua conta BLUE ORIGIN." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ProfilePage,
 });
 
 const SERVICES = [
-  { label: "Informações pessoais", icon: FileText, to: "/app/profile" },
+  { label: "Informações pessoais", icon: FileText, to: "/app/personal-info" },
   { label: "Relatórios da Equipe", icon: UsersRound, to: "/app/team" },
   { label: "Programa de Encaminhamento", icon: Home, to: "/app/affiliate" },
   { label: "Histórico de faturamento", icon: CreditCard, to: "/app/wallet" },
@@ -252,7 +260,7 @@ function ProfilePage() {
           <div className="mt-7 flex items-center gap-5">
             <div className="flex size-[118px] shrink-0 items-center justify-center rounded-[2rem] border-4 border-primary bg-white/90 p-1 shadow-[0_0_24px_rgba(16,255,130,0.22)]">
               <div className="flex size-full items-center justify-center rounded-[1.55rem] bg-slate-200 text-slate-700">
-                <CircleUserRound className="size-20" strokeWidth={1.4} />
+                {profile?.avatar_url ? <img src={profile.avatar_url} alt="O seu avatar" className="size-full rounded-[1.55rem] object-cover" /> : <CircleUserRound className="size-20" strokeWidth={1.4} />}
               </div>
             </div>
             <div className="min-w-0">
