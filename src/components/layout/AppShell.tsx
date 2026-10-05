@@ -1,4 +1,4 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -17,6 +17,7 @@ import {
   HeartHandshake,
   Loader2,
   Gamepad2,
+  ArrowLeft,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
