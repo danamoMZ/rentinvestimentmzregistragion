@@ -1,5 +1,12 @@
 # Roadmap
 
+## Informações pessoais
+- [x] Abrir uma página própria por Conta → Informações pessoais, seguindo a foto enviada.
+- [x] Adicionar Avatar, Conta bancária, Senha de login, Limpar cache, Sair e seta de voltar.
+- [ ] Verificar gravação de foto/carteira e alteração de senha com sessão real — aguarda login na pré-visualização.
+
+## Atualização anterior
+
 - [ ] Substituir a identidade visual e todos os textos visíveis por BLUE ORIGIN.
 - [ ] Aplicar o logótipo enviado, indicador de carregamento e navegação de retorno.
 - [ ] Criar tema Astro-tech completo com modos claro e escuro.
