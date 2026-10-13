@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -124,14 +124,21 @@ function Tasks() {
   }, [watchStartedAt]);
 
   const videoUrl = (value: string) => {
+    const params = `rel=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
     try {
       const u = new URL(value);
       if (u.hostname.includes("youtube.com") && u.pathname === "/watch") {
         const id = u.searchParams.get("v");
-        return id ? `https://www.youtube.com/embed/${id}?rel=0&playsinline=1` : value;
+        return id ? `https://www.youtube.com/embed/${id}?${params}` : value;
+      }
+      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/embed/")) {
+        return `https://www.youtube.com${u.pathname}?${params}`;
+      }
+      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/shorts/")) {
+        return `https://www.youtube.com/embed/${u.pathname.split("/")[2]}?${params}`;
       }
       if (u.hostname === "youtu.be") {
-        return `https://www.youtube.com/embed/${u.pathname.slice(1)}?rel=0&playsinline=1`;
+        return `https://www.youtube.com/embed/${u.pathname.slice(1)}?${params}`;
       }
       return value;
     } catch {
@@ -140,8 +147,40 @@ function Tasks() {
   };
 
   const startWatch = (index: number) => {
-    setWatchStartedAt((current) => ({ ...current, [index]: Date.now() }));
-    setWatchedSeconds((current) => ({ ...current, [index]: 0 }));
+    setWatchStartedAt((current) =>
+      current[index] ? current : { ...current, [index]: Date.now() },
+    );
+  };
+
+  const iframeRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
+
+  // Começa a contar quando o utilizador carrega no play do YouTube.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (!String(event.origin).includes("youtube")) return;
+      let data: any = event.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch { return; }
+      }
+      const playing =
+        (data?.event === "onStateChange" && data?.info === 1) ||
+        (data?.event === "infoDelivery" && data?.info?.playerState === 1);
+      if (!playing) return;
+      const entry = Object.entries(iframeRefs.current).find(
+        ([, el]) => el?.contentWindow === event.source,
+      );
+      if (entry) startWatch(Number(entry[0]));
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  const subscribeIframe = (index: number) => {
+    const el = iframeRefs.current[index];
+    const send = () =>
+      el?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: index, channel: "widget" }), "*");
+    send();
+    window.setTimeout(send, 800);
   };
 
   const claim = async (index: number) => {
@@ -245,6 +284,7 @@ function Tasks() {
                 const video = settings?.[`task_${index}_video_url`] || "";
                 const seconds = watchedSeconds[index] ?? 0;
                 const ready = seconds >= 15;
+                const isYoutube = video.includes("youtube.com") || video.includes("youtu.be");
                 return (
                   <div key={index} className="surface-card overflow-hidden p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -267,8 +307,10 @@ function Tasks() {
 
                     {video ? (
                       <div className="mt-3 overflow-hidden rounded-xl border border-border bg-black">
-                        {video.includes("youtube.com") || video.includes("youtu.be") ? (
+                        {isYoutube ? (
                           <iframe
+                            ref={(el) => { iframeRefs.current[index] = el; }}
+                            onLoad={() => subscribeIframe(index)}
                             src={videoUrl(video)}
                             title={`Vídeo da tarefa ${index}`}
                             className="aspect-video w-full"
@@ -298,9 +340,13 @@ function Tasks() {
                         {video ? `Tempo assistido: ${Math.min(seconds, 15)}s / 15s` : "Vídeo obrigatório"}
                       </p>
                       {!watchStartedAt[index] ? (
-                        <Button size="sm" onClick={() => startWatch(index)} disabled={!video}>
-                          <PlayCircle className="mr-2 size-4" /> Assistir agora
-                        </Button>
+                        isYoutube ? (
+                          <span className="text-xs font-semibold text-primary">Carregue no play do vídeo</span>
+                        ) : (
+                          <Button size="sm" onClick={() => startWatch(index)} disabled={!video}>
+                            <PlayCircle className="mr-2 size-4" /> Assistir agora
+                          </Button>
+                        )
                       ) : (
                         <Button size="sm" onClick={() => claim(index)} disabled={!ready || busyIndex !== null}>
                           {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
