@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Loader2, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -284,6 +284,7 @@ function Tasks() {
                 const video = settings?.[`task_${index}_video_url`] || "";
                 const seconds = watchedSeconds[index] ?? 0;
                 const ready = seconds >= 15;
+                const isYoutube = video.includes("youtube.com") || video.includes("youtu.be");
                 return (
                   <div key={index} className="surface-card overflow-hidden p-4">
                     <div className="flex items-start justify-between gap-3">
