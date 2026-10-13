@@ -139,15 +139,9 @@ function Tasks() {
     }
   };
 
-  const startWatch = async (index: number) => {
-    try {
-      const { error } = await (supabase as any).rpc("start_task_watch", { _task_index: index });
-      if (error) throw new Error(error.message);
-      setWatchStartedAt((current) => ({ ...current, [index]: Date.now() }));
-      setWatchedSeconds((current) => ({ ...current, [index]: 0 }));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível iniciar a tarefa.");
-    }
+  const startWatch = (index: number) => {
+    setWatchStartedAt((current) => ({ ...current, [index]: Date.now() }));
+    setWatchedSeconds((current) => ({ ...current, [index]: 0 }));
   };
 
   const claim = async (index: number) => {
