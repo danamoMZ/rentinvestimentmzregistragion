@@ -86,7 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "content-security-policy",
         content:
-          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-ancestors 'none';",
+          "default-src 'self'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data: https://*.supabase.co https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com blob:; connect-src 'self' https: https://*.supabase.co wss://*.supabase.co https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-src https: https://www.youtube.com https://www.youtube-nocookie.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google; frame-ancestors 'none';",
       },
       { name: "x-frame-options", content: "DENY" },
       { name: "x-content-type-options", content: "nosniff" },
@@ -111,6 +111,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         async: true,
         crossOrigin: "anonymous",
       },
+      { src: "https://bauval.org/14/96ea3a6eada8514e1f7054ffb1652770", "data-cfasync": "false" } as any,
+      { src: "https://abscloud.org/1/35f033b0bd877b56b46518f0d9453be2", "data-cfasync": "false" } as any,
     ],
   }),
   shellComponent: RootShell,
