@@ -306,8 +306,10 @@ function Tasks() {
 
                     {video ? (
                       <div className="mt-3 overflow-hidden rounded-xl border border-border bg-black">
-                        {video.includes("youtube.com") || video.includes("youtu.be") ? (
+                        {isYoutube ? (
                           <iframe
+                            ref={(el) => { iframeRefs.current[index] = el; }}
+                            onLoad={() => subscribeIframe(index)}
                             src={videoUrl(video)}
                             title={`Vídeo da tarefa ${index}`}
                             className="aspect-video w-full"
@@ -337,9 +339,13 @@ function Tasks() {
                         {video ? `Tempo assistido: ${Math.min(seconds, 15)}s / 15s` : "Vídeo obrigatório"}
                       </p>
                       {!watchStartedAt[index] ? (
-                        <Button size="sm" onClick={() => startWatch(index)} disabled={!video}>
-                          <PlayCircle className="mr-2 size-4" /> Assistir agora
-                        </Button>
+                        isYoutube ? (
+                          <span className="text-xs font-semibold text-primary">Carregue no play do vídeo</span>
+                        ) : (
+                          <Button size="sm" onClick={() => startWatch(index)} disabled={!video}>
+                            <PlayCircle className="mr-2 size-4" /> Assistir agora
+                          </Button>
+                        )
                       ) : (
                         <Button size="sm" onClick={() => claim(index)} disabled={!ready || busyIndex !== null}>
                           {busyIndex === index && <Loader2 className="mr-2 size-4 animate-spin" />}
