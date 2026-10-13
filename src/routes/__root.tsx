@@ -82,6 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#0ea5e9" },
       { title: "BLUE ORIGIN — Plataforma oficial" },
       { name: "description", content: "Plataforma BLUE ORIGIN — VIPs, tarefas e gestão de saldo em MZN." },
+      { name: "monetag", content: "4dc3d4b1f38ca5127a9efdade7352a3f" },
       { property: "og:type", content: "website" },
       {
         name: "content-security-policy",
