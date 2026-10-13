@@ -124,14 +124,21 @@ function Tasks() {
   }, [watchStartedAt]);
 
   const videoUrl = (value: string) => {
+    const params = `rel=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
     try {
       const u = new URL(value);
       if (u.hostname.includes("youtube.com") && u.pathname === "/watch") {
         const id = u.searchParams.get("v");
-        return id ? `https://www.youtube.com/embed/${id}?rel=0&playsinline=1` : value;
+        return id ? `https://www.youtube.com/embed/${id}?${params}` : value;
+      }
+      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/embed/")) {
+        return `https://www.youtube.com${u.pathname}?${params}`;
+      }
+      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/shorts/")) {
+        return `https://www.youtube.com/embed/${u.pathname.split("/")[2]}?${params}`;
       }
       if (u.hostname === "youtu.be") {
-        return `https://www.youtube.com/embed/${u.pathname.slice(1)}?rel=0&playsinline=1`;
+        return `https://www.youtube.com/embed/${u.pathname.slice(1)}?${params}`;
       }
       return value;
     } catch {
@@ -140,8 +147,40 @@ function Tasks() {
   };
 
   const startWatch = (index: number) => {
-    setWatchStartedAt((current) => ({ ...current, [index]: Date.now() }));
-    setWatchedSeconds((current) => ({ ...current, [index]: 0 }));
+    setWatchStartedAt((current) =>
+      current[index] ? current : { ...current, [index]: Date.now() },
+    );
+  };
+
+  const iframeRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
+
+  // Começa a contar quando o utilizador carrega no play do YouTube.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (!String(event.origin).includes("youtube")) return;
+      let data: any = event.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch { return; }
+      }
+      const playing =
+        (data?.event === "onStateChange" && data?.info === 1) ||
+        (data?.event === "infoDelivery" && data?.info?.playerState === 1);
+      if (!playing) return;
+      const entry = Object.entries(iframeRefs.current).find(
+        ([, el]) => el?.contentWindow === event.source,
+      );
+      if (entry) startWatch(Number(entry[0]));
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  const subscribeIframe = (index: number) => {
+    const el = iframeRefs.current[index];
+    const send = () =>
+      el?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: index, channel: "widget" }), "*");
+    send();
+    window.setTimeout(send, 800);
   };
 
   const claim = async (index: number) => {
