@@ -115,6 +115,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { src: "https://bauval.org/14/96ea3a6eada8514e1f7054ffb1652770", "data-cfasync": "false" } as any,
       { src: "https://abscloud.org/1/35f033b0bd877b56b46518f0d9453be2", "data-cfasync": "false" } as any,
       { src: "https://nap5k.com/tag.min.js", "data-zone": "12024335" } as any,
+      { src: "https://quge5.com/88/tag.min.js", "data-zone": "295335", async: true, "data-cfasync": "false" } as any,
     ],
   }),
   shellComponent: RootShell,
