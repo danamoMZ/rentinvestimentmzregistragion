@@ -110,7 +110,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
       const payloadPart = token.split('.')[1];
       const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
       const payload = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')));
-      const expectedIssuer = `${SUPABASE_URL.replace(/\\/$/, '')}/auth/v1`;
+      const expectedIssuer = `${SUPABASE_URL.endsWith('/') ? SUPABASE_URL.slice(0, -1) : SUPABASE_URL}/auth/v1`;
       if (typeof payload.iss === 'string' && payload.iss !== expectedIssuer) {
         console.error('[Supabase Auth] JWT issuer does not match configured project URL. Check VITE_SUPABASE_URL and SUPABASE_URL.');
         throw new Error('Unauthorized: Supabase project mismatch. VITE_SUPABASE_URL and SUPABASE_URL must point to the same project.');
