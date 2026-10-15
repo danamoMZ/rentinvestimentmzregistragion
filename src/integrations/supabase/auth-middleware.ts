@@ -35,9 +35,20 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
   .client(async ({ next }) => {
     // Server Functions do not automatically forward the Supabase localStorage session.
     // Attach the current access token to every protected RPC request.
-    const { data: { session }, error } = await browserSupabase.auth.getSession();
-    if (error || !session?.access_token) {
-      throw new Error('Sessão expirada ou ausente. Inicie sessão novamente.');
+    let { data: { session }, error } = await browserSupabase.auth.getSession();
+
+    // A project migration can leave a stale/corrupt session in browser storage.
+    // Refresh only when the access token is missing, malformed, or about to expire.
+    const tokenLooksLikeJwt = (value?: string) => !!value && value.split('.').length === 3;
+    const expiresSoon = !!session?.expires_at && session.expires_at <= Math.floor(Date.now() / 1000) + 60;
+    if (!error && (!tokenLooksLikeJwt(session?.access_token) || expiresSoon)) {
+      const refreshed = await browserSupabase.auth.refreshSession();
+      session = refreshed.data.session;
+      error = refreshed.error;
+    }
+
+    if (error || !tokenLooksLikeJwt(session?.access_token)) {
+      throw new Error('A sessão Supabase não é válida para este projeto. Saia da conta e entre novamente. Se continuar, confirme que VITE_SUPABASE_URL e SUPABASE_URL apontam para o mesmo projeto.');
     }
 
     return next({
@@ -52,8 +63,11 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
     // Match the exact project/key priority used by the browser Supabase client.
     // Lovable may expose VITE_* and server-side env vars separately; preferring
     // SUPABASE_URL here can validate a frontend token against a different project.
-    const SUPABASE_URL = process.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
-    const SUPABASE_PUBLISHABLE_KEY = process.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'];
+    // Prefer the same build-time Vite values used by the browser client, then
+    // server env values. A URL/key mismatch after a project migration makes
+    // valid user JWTs appear invalid to getClaims().
+    const SUPABASE_URL = import.meta.env['VITE_SUPABASE_URL'] || process.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
+    const SUPABASE_PUBLISHABLE_KEY = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'];
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       const missing = [
@@ -87,7 +101,23 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
     }
 
     if (token.split('.').length !== 3) {
-      throw new Error('Unauthorized: Invalid token');
+      throw new Error('Unauthorized: Invalid access token format. The browser did not send a Supabase Auth JWT; sign out and sign in again.');
+    }
+
+    // Detect a JWT issued by a different Supabase project before verification.
+    // This avoids masking a project URL mismatch as a generic invalid-token error.
+    try {
+      const payloadPart = token.split('.')[1];
+      const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')));
+      const expectedIssuer = `${SUPABASE_URL.replace(/\\/$/, '')}/auth/v1`;
+      if (typeof payload.iss === 'string' && payload.iss !== expectedIssuer) {
+        console.error('[Supabase Auth] JWT issuer does not match configured project URL. Check VITE_SUPABASE_URL and SUPABASE_URL.');
+        throw new Error('Unauthorized: Supabase project mismatch. VITE_SUPABASE_URL and SUPABASE_URL must point to the same project.');
+      }
+    } catch (cause) {
+      if (cause instanceof Error && cause.message.includes('Supabase project mismatch')) throw cause;
+      // getClaims below performs authoritative JWT parsing and signature validation.
     }
 
     const supabase = createClient<Database>(
@@ -110,7 +140,8 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
 
     const { data, error } = await supabase.auth.getClaims(token);
     if (error || !data?.claims) {
-      throw new Error('Unauthorized: Invalid token');
+      console.error('[Supabase Auth] getClaims rejected the access token:', error?.message ?? 'No claims returned');
+      throw new Error('Unauthorized: Supabase rejected the access token. Check that the session belongs to the configured project and sign in again.');
     }
 
     if (!data.claims.sub) {
