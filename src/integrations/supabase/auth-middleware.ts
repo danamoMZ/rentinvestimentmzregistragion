@@ -49,8 +49,11 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' })
   .server(
   async ({ next }) => {
     
-    const SUPABASE_URL = process.env['SUPABASE_URL'];
-    const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
+    // Match the exact project/key priority used by the browser Supabase client.
+    // Lovable may expose VITE_* and server-side env vars separately; preferring
+    // SUPABASE_URL here can validate a frontend token against a different project.
+    const SUPABASE_URL = process.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
+    const SUPABASE_PUBLISHABLE_KEY = process.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'];
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       const missing = [
